@@ -1,0 +1,54 @@
+```{r}
+#| label: fig-bilirubin
+#| fig-cap: "Bilirubin"
+
+plotdata <- bind_rows(escdata %>% mutate(ef_cat = "Overall"), escdata %>% arrange(ef_cat)) %>%
+  mutate(
+    ef_cat = fct_inorder(ef_cat),
+    ef_catnum = as.numeric(ef_cat)
+  )
+
+bardata <- plotdata %>%
+  group_by(ef_catnum, ef_cat) %>%
+  count(Bili_mgdL_cat) %>%
+  mutate(
+    p = n / sum(n) * 10,
+    pprint = paste0(fn(p * 10, 0), "%")
+  ) %>%
+  ungroup() %>%
+  filter(Bili_mgdL_cat == "Yes")
+
+p <- ggplot(data = bardata, aes(x = ef_catnum + 0.1, p, fill = ef_cat)) +
+  geom_bar(width = 0.2, position = position_dodge(width = 0.2), stat = "identity") +
+  scale_fill_manual(values = global_cols[1:4]) +
+  geom_boxplot(data = plotdata, aes(x = ef_catnum - 0.1, Bili_mgdL, fill = ef_cat), width = 0.2) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~ . * 10, name = "Elevated bilirubin (%)"), limits = c(0, 5)) +
+  scale_x_continuous(labels = levels(plotdata %>% pull(ef_cat)), breaks = c(1, 2, 3, 4)) +
+  geom_text(
+    data = bardata,
+    aes(x = ef_catnum + 0.1, label = pprint),
+    nudge_y = 10 * 0.03,
+    size = 5.5,
+    color = rep(global_cols[1:4]),
+    fontface = "bold",
+    check_overlap = F
+  ) +
+  theme_classic() +
+  theme(
+    panel.grid.major.y = element_line(
+      color = "lightgrey",
+      linewidth = 0.5,
+      linetype = 2
+    ),
+    text = element_text(size = 19, face = "bold"),
+    axis.text = element_text(color = "black"),
+    axis.title.x = element_blank(),
+    legend.position = "none"
+  ) +
+  labs(y = "Bilirubin (mg/dL)")
+
+if (output) {
+  create_pptx(p)
+}
+p
+```

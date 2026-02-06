@@ -1,0 +1,163 @@
+---
+title: "Statistical report: Comprehensive assessment of bilirubin in acute HFrEF, HFmrEF and HFpEF: associations with clinical characteristics, in-hospital course and outcomes, and 1-year cause-specific outcomes"
+subtitle: DRAFT
+date: "`r Sys.Date()`"
+cover: static/ki_logo_vert_rgb.png
+editor: source
+format:
+  pdf:
+    documentclass: scrartcl
+    template-partials:
+      - "static/before-body.tex"
+      - "static/_titlepage.tex"
+    include-in-header: 
+      - "static/in-header.tex"
+    toc: true
+    toc-depth: 3
+    toc-title: Contents
+    lof: true
+    lot: true
+    cap-location: top
+    number-sections: true
+    colorlinks: false
+    keep-tex: false
+bibliography: static/references.bib
+csl: static/bmj.csl
+link-citations: true
+link-bibliography: true
+nocite: '@*'
+knitr:
+  opts_chunk: 
+    dev: cairo_pdf
+    collapse: true
+    comment: "" 
+    echo: FALSE
+    include: TRUE
+    warning: FALSE
+    message: FALSE
+    fig.pos: "H"
+    fig.path: "../output/figs/"
+    fig.height: 6
+    fig.width: 10
+    R.options:
+      knitr.graphics.auto_pdf: true
+---
+
+```{r}
+#| label: set-up-load-data
+options(knitr.kable.NA = "")
+
+# load packages, globals and project specific functions
+source(here::here("setup/setup.R"))
+
+# load data
+load(here("data/clean-data/escdata.RData"))
+
+# load workbook to write tables to Excel
+wb <- loadWorkbook(here("output/tabs/tables.xlsx"))
+sheets <- names(wb)
+
+# load pptx file with figs
+figs <- officer::read_pptx(path = here::here("output/figs/figs.pptx"))
+
+output <- FALSE
+```           
+
+\newpage
+
+# Data
+
+## Data sources
+
+ESC HF III
+
+## Inclusion/exclusion criteria
+
+```{r}
+#| label: tbl-flow
+#| tbl-cap: Information for flowchart
+#| tbl-pos: "H"
+
+default_kable(flow)
+```
+
+First patient in: `r min(escdata$BASEDT)` and last patient in: `r max(escdata$BASEDT)` 
+from approximately `r escdata %>% distinct(CentreId) %>% count() %>% pull(n)` 
+enrolling centers in `r escdata %>% distinct(COUNTRY) %>% count() %>% pull(n)` countries. 
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with care.
+
+## Baseline characteristics
+
+Categorical variables are presented with n and percentage and tested for 
+differences with the chi-square test. 
+Continuous variables are presented with median [first quartile-third quartile] and tested for 
+differences with the Kruskal-Wallis test. 
+
+\clearpage
+
+# Results
+
+## Baseline characteristics
+
+{{< include src/basetab.qmd >}}
+
+\clearpage
+
+{{< include src/figbilirubin.qmd >}}
+
+\clearpage
+
+{{< include src/scatterplot.qmd >}}
+
+\clearpage
+
+{{< include src/figbilirubin_categorical.qmd >}}
+
+\clearpage
+
+{{< include src/inhospdeathspline.qmd >}}
+
+{{< include src/inhospdeathcause.qmd >}}
+
+\clearpage
+
+{{< include src/inhospdeathcause2.qmd >}}
+
+\clearpage
+
+{{< include src/cvhfhspline.qmd >}}
+
+\clearpage
+
+{{< include src/outcomes_subgroup.qmd >}}
+
+\clearpage
+
+# Reproducibility
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+
+https://github.com/KIHeartFailure/esc-bilirubin. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+# References
+
+::: {#refs}
+:::

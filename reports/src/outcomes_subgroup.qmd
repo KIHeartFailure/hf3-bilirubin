@@ -1,0 +1,180 @@
+```{r}
+#| label: outcomessubfunc
+#| cache: true
+#| cache.comments: false
+
+size_use <- 16
+
+outcomessubfunc_inner <- function(event, intvar, intvarname) {
+  levsint <- levels(escdata %>% pull(!!sym(intvar)))
+  nlevsint <- length(levsint)
+
+  out <- tibble(
+    pop = NA_character_,
+    est = NA_real_,
+    se = NA_real_,
+    p = NA_real_,
+    pint = NA_real_, .rows = (nlevsint + 1)
+  )
+
+  out[, 1] <- c(intvarname, paste0("  ", levsint))
+
+  for (i in seq_along(levsint)) {
+    mod <- summary(glm(formula(paste0(event, "~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "')")),
+      data = escdata, family = binomial(link = "logit"),
+    ))
+
+    out[i + 1, 2] <- mod$coefficients[2, "Estimate"]
+    out[i + 1, 3] <- mod$coefficients[2, "Std. Error"]
+    out[i + 1, 4] <- mod$coefficients[2, "Pr(>|z|)"]
+
+    if (i == 1) {
+      out[1, 5] <- last(mod$coefficients[, "Pr(>|z|)"])
+    }
+  }
+  return(out)
+}
+outcomessubfunc <- function(event) {
+  mod <- summary(glm(formula(paste0(event, "~ Bili_mgdL_cat")),
+    data = escdata, family = binomial(link = "logit"),
+  ))
+  out <- tibble(
+    pop = "Overall",
+    est = mod$coefficients[2, "Estimate"],
+    se = mod$coefficients[2, "Std. Error"],
+    p = mod$coefficients[2, "Pr(>|z|)"],
+    pint = NA
+  )
+
+  outcomessub <- outcomessubfunc_inner(
+    event = event, intvar = "ef_cat",
+    intvarname = "EF (%)"
+  )
+  outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
+    event = event, intvar = "DMSEX",
+    intvarname = "Sex"
+  ))
+  outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
+    event = event, intvar = "DMAGE_cat",
+    intvarname = "Age (years)"
+  ))
+  out <- bind_rows(out, outcomessub)
+
+  subplot <- out %>%
+    mutate(
+      order = n():1,
+      lci = est - global_z05 * se,
+      uci = est + global_z05 * se,
+      cols = factor(case_when(p >= 0.05 ~ 2, est >= 0 ~ 3, est < 0 ~ 1)),
+      estci = if_else(!is.na(est), paste0(
+        fn(exp(est), 2), " (",
+        fn(exp(lci), 2), "-",
+        fn(exp(uci), 2), ")"
+      ), NA),
+      pint = if_else(is.na(pint), NA, fn(pint, dig = 3, p = TRUE)),
+      pop = str_replace_all(pop, ">=", "\u2265")
+    )
+
+  # plot it
+
+  p <- ggplot(subplot, aes(x = exp(est), y = order, color = cols)) +
+    # Add a reference dashed line at 1
+    geom_vline(xintercept = 1, linetype = "dashed", color = "darkgrey", linewidth = 0.6) +
+    # Add dot plot and error bars
+    geom_errorbar(aes(xmin = exp(lci), xmax = exp(uci)), width = 0.45, linewidth = 0.8) +
+    geom_point(size = 3, shape = 15) +
+    scale_color_manual(values = global_cols[c(2, 3, 4)]) +
+    theme_classic() +
+    theme(
+      text = element_text(size = size_use, face = "bold"),
+      legend.position = "none",
+      axis.ticks.y = element_blank(),
+      axis.title.y = element_blank(),
+      axis.text.y = element_text(color = "black", hjust = 0, size = size_use),
+      axis.line.y = element_line(colour = "white"),
+      plot.title = element_text(hjust = 0.5),
+      panel.grid.major.y = element_line(colour = "grey94")
+    ) +
+    scale_x_continuous(trans = "log", breaks = c(0.25, 0.5, 1, 2, 3, 4), limits = c(.25, 4), expand = c(0, 0)) +
+    scale_y_continuous(breaks = subplot$order, labels = subplot$pop) +
+    labs(x = "Odds Ratio (95% CI)") +
+    ggtitle("Elevated bilirubin \nless harmfull - more harmfull")
+
+  t <- ggplot(subplot) +
+    geom_text(aes(y = order, x = 1, label = estci), size = size_use / .pt, fontface = "bold") +
+    ggtitle("Odds Ratio\n(95% CI)") +
+    xlab("  ") +
+    theme_classic() +
+    theme(
+      text = element_text(size = size_use, face = "bold"),
+      axis.line.y = element_blank(),
+      axis.line.x = element_line(color = "white"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.ticks.x = element_line(color = "white"),
+      axis.title.y = element_blank(),
+      axis.text.x = element_text(color = "white"),
+      plot.title = element_text(hjust = 0.5)
+    )
+
+  pint <- ggplot(subplot) +
+    geom_text(aes(y = order, x = 1, label = pint), size = size_use / .pt, fontface = "bold") +
+    ggtitle("P-value\ninteraction") +
+    xlab("  ") +
+    theme_classic() +
+    theme(
+      text = element_text(size = size_use, face = "bold"),
+      axis.line.y = element_blank(),
+      axis.line.x = element_line(color = "white"),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.ticks.x = element_line(color = "white"),
+      axis.title.y = element_blank(),
+      axis.text.x = element_text(color = "white"),
+      plot.title = element_text(hjust = 0.5)
+    )
+
+  pall <- p + t + pint + plot_layout(ncol = 3, widths = c(3.5, 1, 0.75))
+
+  if (output) {
+    create_pptx(pall, width = 10, height = 6)
+  }
+  pall
+}
+```
+
+```{r}
+#| label: fig-outcomes-subgroup-inhospdeath
+#| cache: true
+#| cache.comments: false
+#| dependson: outcomessubfunc
+#| fig-cap: "In-hospital death"
+#| fig-width: 10
+#| fig-height: 6
+
+outcomessubfunc(event = "death_baseline_C")
+```
+
+```{r}
+#| label: fig-outcomes-subgroup-fucvdhfh
+#| cache: true
+#| cache.comments: false
+#| dependson: outcomessubfunc
+#| fig-cap: "FU CVD/1st HFH"
+#| fig-width: 10
+#| fig-height: 6
+
+outcomessubfunc(event = "cvdhfh")
+```
+
+```{r}
+#| label: fig-outcomes-subgroup-fudeath
+#| cache: true
+#| cache.comments: false
+#| dependson: outcomessubfunc
+#| fig-cap: "FU All-cause death"
+#| fig-width: 10
+#| fig-height: 6
+
+outcomessubfunc(event = "death_fup")
+```

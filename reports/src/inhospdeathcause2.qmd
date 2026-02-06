@@ -1,0 +1,59 @@
+```{r}
+#| label: fig-inhospdeathcause2
+#| fig-cap: "Cause in-hospital death vs bilirubin 2"
+#| fig-subcap:
+#| - In hosp worsening HF
+#| - Vasoactive support any of dobuta dopa milri enox lev yes/no
+#| - Vasocative support any of norepi epi vasopress yes/no
+#| - Nitrates iv
+#| - Iv diuretics
+#| - Short term mech support
+#| cache: true
+#| cache.comments: false
+#| layout-ncol: 2
+#| layout-nrow: 3
+
+barplotfunc <- function(var, varname) {
+  plotdata <- escdata %>%
+    filter(!is.na(death_baseline_C) & !is.na(!!sym(var))) %>%
+    group_by(Bili_mgdL_cat, !!sym(var)) %>%
+    count(death_baseline_C) %>%
+    mutate(
+      p = n / sum(n) * 100,
+      pprint = fn(p, 1)
+    ) %>%
+    ungroup() %>%
+    filter(death_baseline_C == 1)
+
+  p <- ggplot(plotdata, aes(y = p, fill = Bili_mgdL_cat, x = !!sym(var))) +
+    geom_bar(position = "dodge", stat = "identity") +
+    scale_fill_manual(values = global_cols[c(3, 4)]) +
+    theme_classic() +
+    theme(
+      panel.grid.major.y = element_line(
+        color = "lightgrey",
+        linewidth = 0.5,
+        linetype = 2
+      ),
+      text = element_text(size = 19, face = "bold"),
+      axis.text = element_text(color = "black"),
+      legend.position = "bottom"
+    ) +
+    labs(y = "In-hospital death (%)", fill = "Elevated bilirubin", x = varname) +
+    scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+    scale_y_continuous(limits = c(0, 50)) +
+    geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 5.5, fontface = "bold")
+
+  if (output) {
+    create_pptx(p)
+  }
+  p
+}
+
+barplotfunc(var = "DCWHF", varname = "Worsening of HF")
+barplotfunc("vaso_dobuta_dopa_milri_enox_lev", "Dobutamine/Dopamine/Milrinone/Enoximone/Levosimendan")
+barplotfunc("Vaso_norepi_epi_vasopress", "Norepinephrine/Epinephrine/Vasopressin")
+barplotfunc("ITNITH", "Nitrates IV")
+barplotfunc("ITDIURH", "Diuretics IV")
+barplotfunc("ITSTMEC", "Short-term mechanical circulatory support")
+```

@@ -1,0 +1,60 @@
+```{r}
+#| label: fig-bilirubin-cat
+#| fig-cap: "Bilirubin vs. categorical variables"
+#| cache: true
+#| cache.comments: false
+#| fig-subcap:
+#| - Mitral regurg
+#| - Tricuspid regurg
+#| - RV function
+#| - Inf vena cava resp dimension
+#| - Inf vena cava resp variation
+#| - Hepatic dysfunction
+#| - Pulm rales
+#| - Periph edema
+#| - Dyspnea at rest
+#| - Otrhopnea
+#| - Jug ven pulse
+#| - NYHA class
+#| - Clinical profile
+#| layout-ncol: 4
+#| layout-nrow: 4
+
+boxfunc <- function(var, name) {
+  nlevs <- nlevels(escdata %>% pull(!!sym(var)))
+  p <- ggplot(escdata %>% filter(!is.na(!!sym(var))), aes(y = Bili_mgdL, x = !!sym(var), fill = !!sym(var))) +
+    geom_boxplot() +
+    scale_fill_manual(values = global_cols[3:(nlevs + 2)]) +
+    theme_classic() +
+    theme(
+      panel.grid.major.y = element_line(
+        color = "lightgrey",
+        linewidth = 0.5,
+        linetype = 2
+      ),
+      text = element_text(size = 19, face = "bold"),
+      axis.text = element_text(color = "black"),
+      legend.position = "none"
+    ) +
+    labs(y = "Bilirubin (mg/dL)", x = name) +
+    scale_y_continuous(limits = c(0, 5))
+
+  if (output) {
+    create_pptx(p)
+  }
+  p
+}
+boxfunc(var = "OPMITREG_cat", name = "Mitral regurgitation")
+boxfunc(var = "OPTRICUS_cat", name = "Tricuspid regurgitation")
+boxfunc(var = "OPRVF", name = "RV function")
+boxfunc(var = "OPIVDIM", name = "Inferior vena cava dimension")
+boxfunc(var = "OPINFVAR", name = "Inferior vena cava respiratory variation")
+boxfunc(var = "DMHDYS", name = "Hepatic dysfunction")
+boxfunc(var = "OPPULRA", name = "Pulmonary rales")
+boxfunc(var = "OPPULOE", name = "Peripheral oedema")
+boxfunc(var = "OPDYSP", name = "Dyspnea at rest")
+boxfunc(var = "OPORTHO", name = "Orthopnea")
+boxfunc(var = "OPJVP", name = "Jugular Venous Pulse")
+boxfunc(var = "OPNYHA", name = "NYHA class")
+boxfunc(var = "OPCPRO", name = "Clinical Profiles")
+```

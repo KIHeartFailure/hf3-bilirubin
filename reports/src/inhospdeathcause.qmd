@@ -1,0 +1,39 @@
+```{r}
+#| label: fig-inhospdeathcause
+#| fig-cap: "Cause in-hospital death vs bilirubin"
+
+plotdata <- escdata %>%
+  filter(!is.na(death)) %>%
+  group_by(Bili_mgdL_cat) %>%
+  count(death) %>%
+  mutate(
+    p = n / sum(n) * 100,
+    pprint = fn(p, 1)
+  ) %>%
+  ungroup()
+
+p <- ggplot(plotdata, aes(y = p, x = death, fill = Bili_mgdL_cat)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  scale_fill_manual(values = global_cols[c(3, 4)]) +
+  theme_classic() +
+  theme(
+    panel.grid.major.y = element_line(
+      color = "lightgrey",
+      linewidth = 0.5,
+      linetype = 2
+    ),
+    text = element_text(size = 19, face = "bold"),
+    axis.text = element_text(color = "black"),
+    axis.title.x = element_blank(),
+    legend.position = "bottom"
+  ) +
+  labs(y = "In-hospital death (%)", fill = "Elevated bilirubin") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_y_continuous(limits = c(0, 100)) +
+  geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 5.5, fontface = "bold")
+
+if (output) {
+  create_pptx(p)
+}
+p
+```

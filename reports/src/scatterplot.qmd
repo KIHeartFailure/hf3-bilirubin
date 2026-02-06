@@ -1,0 +1,60 @@
+
+```{r}
+#| label: fig-corr
+#| cache: true
+#| cache.comments: false
+#| fig-cap: "Bilirubin vs continous variables"
+#| fig-subcap:
+#|  - Systolic BP
+#|  - Log NTproBNP
+#|  - EF
+#|  - eGFR
+#|  - Albumin
+#|  - Sodium
+#|  - TAPSE
+#|  - PA pressure
+#| layout-ncol: 3
+#| layout-nrow: 3
+
+scatter <- function(var, name, ylim = NULL) {
+  r <- cor.test(escdata %>% pull(Bili_mgdL), escdata %>% pull(!!sym(var)), method = "kendall")
+  rprint <- paste0("r, p-value: ", fn(r$estimate, 2), ", ", fn(r$p.value, 3, p = T))
+  p <- ggplot(escdata, aes(x = Bili_mgdL, y = !!sym(var))) +
+    # geom_hline(yintercept = 0, linetype = "dashed", color = "darkgrey", linewidth = 0.7) +
+    geom_vline(xintercept = 1, linetype = 2, color = "lightgrey", linewidth = 0.5) +
+    geom_point(color = global_cols[1]) +
+    geom_smooth(color = global_cols[4], method = "loess", fill = global_cols[4]) +
+    theme_classic() +
+    theme(
+      panel.grid.major.y = element_line(
+        color = "lightgrey",
+        linewidth = 0.5,
+        linetype = 2
+      ),
+      text = element_text(size = 19, face = "bold"),
+      axis.text = element_text(color = "black")
+    ) +
+    labs(x = "Bilirubin (mg/dL)", y = name) +
+    geom_text(y = min(escdata %>% pull(!!sym(var)), na.rm = T) + min(escdata %>% pull(!!sym(var)), na.rm = T) * 0.05, x = 10, label = rprint, size = 6) +
+    scale_x_continuous(limits = c(0, 5))
+
+
+  if (!is.null(ylim)) {
+    p <- p +
+      scale_y_continuous(limits = c(min(ylim), max(ylim)))
+  }
+
+  if (output) {
+    create_pptx(p)
+  }
+  p
+}
+scatter(var = "OPBP1", name = "Systolic blood pressure (mmHg)")
+scatter(var = "logNt_pgmL", "log(NT-proBNP) (pg/ml)")
+scatter(var = "EF", "EF (%)")
+scatter(var = "CKDEPI", "eGFR (ml/min/1.73m²)")
+scatter(var = "OPALB", "Albumin (g/dL)")
+scatter(var = "OPSOD", "Sodium (mmol/L)")
+scatter(var = "OPTAPSE", "TAPSE (mm)")
+scatter(var = "OPPAP", "PA pressure (mmHg)")
+```
