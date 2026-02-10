@@ -20,12 +20,13 @@ barplotfunc <- function(var, varname) {
     count(death_baseline_C) %>%
     mutate(
       p = n / sum(n) * 100,
-      pprint = fn(p, 1)
+      pprint = fn(p, 1),
+      Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, ">=", "\u2265"))
     ) %>%
     ungroup() %>%
     filter(death_baseline_C == 1)
 
-  p <- ggplot(plotdata, aes(y = p, fill = Bili_mgdL_cat, x = !!sym(var))) +
+  p <- ggplot(plotdata, aes(y = p, x = Bili_mgdL_cat, fill = !!sym(var))) +
     geom_bar(position = "dodge", stat = "identity") +
     scale_fill_manual(values = global_cols[c(3, 4)]) +
     theme_classic() +
@@ -37,12 +38,13 @@ barplotfunc <- function(var, varname) {
       ),
       text = element_text(size = 19, face = "bold"),
       axis.text = element_text(color = "black"),
-      legend.position = "bottom"
+      legend.position = "bottom",
+      axis.title.x = element_blank()
     ) +
-    labs(y = "In-hospital death (%)", fill = "Elevated bilirubin", x = varname) +
-    scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+    labs(y = "In-hospital death (%)", fill = varname) +
+    # scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
     scale_y_continuous(limits = c(0, 50)) +
-    geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 5.5, fontface = "bold")
+    geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 6, fontface = "bold")
 
   if (output) {
     create_pptx(p)

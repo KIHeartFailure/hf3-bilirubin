@@ -16,20 +16,20 @@ bardata <- plotdata %>%
     pprint = paste0(fn(p * 10, 0), "%")
   ) %>%
   ungroup() %>%
-  filter(Bili_mgdL_cat == "Yes")
+  filter(Bili_mgdL_cat == "Bilirubin >=1.0 mg/dL")
 
 p <- ggplot(data = bardata, aes(x = ef_catnum + 0.1, p, fill = ef_cat)) +
   geom_bar(width = 0.2, position = position_dodge(width = 0.2), stat = "identity") +
-  scale_fill_manual(values = global_cols[1:4]) +
+  scale_fill_manual(values = global_cols[c(1, 2, 4, 6)]) +
   geom_boxplot(data = plotdata, aes(x = ef_catnum - 0.1, Bili_mgdL, fill = ef_cat), width = 0.2) +
-  scale_y_continuous(sec.axis = sec_axis(trans = ~ . * 10, name = "Elevated bilirubin (%)"), limits = c(0, 5)) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~ . * 10, name = "Bilirubin \u22651.0 mg/dL (%)"), limits = c(0, 5)) +
   scale_x_continuous(labels = levels(plotdata %>% pull(ef_cat)), breaks = c(1, 2, 3, 4)) +
   geom_text(
     data = bardata,
     aes(x = ef_catnum + 0.1, label = pprint),
     nudge_y = 10 * 0.03,
     size = 5.5,
-    color = rep(global_cols[1:4]),
+    color = rep(global_cols[c(1, 2, 4, 6)]),
     fontface = "bold",
     check_overlap = F
   ) +

@@ -261,9 +261,6 @@ indent_rows <- tab %>%
   filter(indent_rows) %>%
   pull(rows)
 
-head <- c(1, 1, 1, 2, 1)
-names(head) <- c(" ", " ", " ", "Elevated bilirubin", " ")
-
 cn <- sanitize_text(cn)
 
 default_kable(tab,
@@ -273,7 +270,6 @@ default_kable(tab,
   col.names = cn
 ) %>%
   add_indent(indent_rows) %>%
-  add_header_above(head) %>%
   footnote(
     footnote_order = c("general", "symbol", "alphabet"),
     general_title = "",

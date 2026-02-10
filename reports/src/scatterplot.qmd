@@ -21,9 +21,9 @@ scatter <- function(var, name, ylim = NULL) {
   rprint <- paste0("r, p-value: ", fn(r$estimate, 2), ", ", fn(r$p.value, 3, p = T))
   p <- ggplot(escdata, aes(x = Bili_mgdL, y = !!sym(var))) +
     # geom_hline(yintercept = 0, linetype = "dashed", color = "darkgrey", linewidth = 0.7) +
-    geom_vline(xintercept = 1, linetype = 2, color = "lightgrey", linewidth = 0.5) +
+    geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
     geom_point(color = global_cols[1]) +
-    geom_smooth(color = global_cols[4], method = "loess", fill = global_cols[4]) +
+    geom_smooth(color = global_cols[2], method = "loess", fill = global_cols[2]) +
     theme_classic() +
     theme(
       panel.grid.major.y = element_line(
@@ -31,17 +31,17 @@ scatter <- function(var, name, ylim = NULL) {
         linewidth = 0.5,
         linetype = 2
       ),
-      text = element_text(size = 19, face = "bold"),
+      text = element_text(size = 22, face = "bold"),
       axis.text = element_text(color = "black")
     ) +
     labs(x = "Bilirubin (mg/dL)", y = name) +
-    geom_text(y = min(escdata %>% pull(!!sym(var)), na.rm = T) + min(escdata %>% pull(!!sym(var)), na.rm = T) * 0.05, x = 10, label = rprint, size = 6) +
+    # geom_text(y = min(escdata %>% pull(!!sym(var)), na.rm = T) + min(escdata %>% pull(!!sym(var)), na.rm = T) * 0.05, x = 10, label = rprint, size = 6) +
     scale_x_continuous(limits = c(0, 5))
 
 
   if (!is.null(ylim)) {
     p <- p +
-      scale_y_continuous(limits = c(min(ylim), max(ylim)))
+      scale_y_continuous(limits = c(min(ylim), max(ylim)), breaks = ylim)
   }
 
   if (output) {
@@ -49,12 +49,12 @@ scatter <- function(var, name, ylim = NULL) {
   }
   p
 }
-scatter(var = "OPBP1", name = "Systolic blood pressure (mmHg)")
-scatter(var = "logNt_pgmL", "log(NT-proBNP) (pg/ml)")
-scatter(var = "EF", "EF (%)")
-scatter(var = "CKDEPI", "eGFR (ml/min/1.73m²)")
-scatter(var = "OPALB", "Albumin (g/dL)")
-scatter(var = "OPSOD", "Sodium (mmol/L)")
-scatter(var = "OPTAPSE", "TAPSE (mm)")
-scatter(var = "OPPAP", "PA pressure (mmHg)")
+scatter(var = "OPBP1", name = "Systolic blood pressure (mmHg)", ylim = seq(50, 250, 50))
+scatter(var = "logNt_pgmL", "log(NT-proBNP) (pg/ml)", ylim = seq(2, 14, 2))
+scatter(var = "EF", "EF (%)", ylim = seq(0, 80, 20))
+scatter(var = "CKDEPI", "eGFR (ml/min/1.73m²)", ylim = seq(0, 200, 50))
+scatter(var = "OPALB", "Albumin (g/dL)", ylim = seq(0, 8, 2))
+scatter(var = "OPSOD", "Sodium (mmol/L)", ylim = seq(100, 160, 20))
+scatter(var = "OPTAPSE", "TAPSE (mm)", ylim = seq(0, 50, 10))
+scatter(var = "OPPAP", "PA pressure (mmHg)", ylim = seq(0, 150, 25))
 ```

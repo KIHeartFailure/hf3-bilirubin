@@ -7,6 +7,7 @@
 #| - Mitral regurg
 #| - Tricuspid regurg
 #| - RV function
+#| - TAPSE > vs <= median
 #| - Inf vena cava resp dimension
 #| - Inf vena cava resp variation
 #| - Hepatic dysfunction
@@ -21,10 +22,14 @@
 #| layout-nrow: 4
 
 boxfunc <- function(var, name) {
-  nlevs <- nlevels(escdata %>% pull(!!sym(var)))
+  levs <- str_replace(levels(escdata %>% pull(!!sym(var))), ">=", "\u2265")
+  nlevs <- length(levs)
+
   p <- ggplot(escdata %>% filter(!is.na(!!sym(var))), aes(y = Bili_mgdL, x = !!sym(var), fill = !!sym(var))) +
-    geom_boxplot() +
-    scale_fill_manual(values = global_cols[3:(nlevs + 2)]) +
+    geom_hline(yintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
+    geom_violin(trim = TRUE) +
+    geom_boxplot(width = 0.1, outlier.shape = NA) +
+    scale_fill_manual(values = global_cols[1:(nlevs + 2)]) +
     theme_classic() +
     theme(
       panel.grid.major.y = element_line(
@@ -32,12 +37,13 @@ boxfunc <- function(var, name) {
         linewidth = 0.5,
         linetype = 2
       ),
-      text = element_text(size = 19, face = "bold"),
+      text = element_text(size = 22, face = "bold"),
       axis.text = element_text(color = "black"),
       legend.position = "none"
     ) +
     labs(y = "Bilirubin (mg/dL)", x = name) +
-    scale_y_continuous(limits = c(0, 5))
+    scale_y_continuous(limits = c(0, 5)) +
+    scale_x_discrete(labels = levs)
 
   if (output) {
     create_pptx(p)
@@ -47,6 +53,7 @@ boxfunc <- function(var, name) {
 boxfunc(var = "OPMITREG_cat", name = "Mitral regurgitation")
 boxfunc(var = "OPTRICUS_cat", name = "Tricuspid regurgitation")
 boxfunc(var = "OPRVF", name = "RV function")
+boxfunc(var = "OPTAPSE_cat", name = "TAPSE (mm)")
 boxfunc(var = "OPIVDIM", name = "Inferior vena cava dimension")
 boxfunc(var = "OPINFVAR", name = "Inferior vena cava respiratory variation")
 boxfunc(var = "DMHDYS", name = "Hepatic dysfunction")

@@ -39,6 +39,7 @@ tabvars <- c(
   "BNP_pgmL",
   "Nt_pgmL",
   "Nt_pgmL_cat",
+  "BNP_NT_cat",
   "OPTROPI",
   "OPTROPT",
   "OPCRP",
@@ -62,37 +63,18 @@ tabvars <- c(
   "MDBBH_C",
   "MDALH_C",
   "SGLT2H_C",
-  "MDDNOGLD_C",
+  "MDDNOGLH_C",
   "MDDIURH_C"
 )
 
 modvars <- c(
-  "OPNYHA",
   "DMAGE",
   "DMSEX",
-  "BMI",
-  "hfdur",
-  "prevhfhosp",
-  "DMPUA_C",
-  "DMDIAB_C",
-  "IDICD",
-  "DMCOPD",
-  "DMCCANC",
-  "DMCOGD",
-  "DMSAPN",
+  "ef_cat",
   "OPBP1",
-  "OPHR",
   "Hb_gdL",
   "CKDEPI",
-  "BNP_pgmL",
-  "Nt_pgmL",
-  "OPARYT",
-  "OPEF",
-  "rasiarni",
-  "MDBBH_C",
-  "MDALH_C",
-  "SGLT2H_C",
-  "MDDIURH_C"
+  "BNP_NT_cat"
 )
 
 tmp <- left_join(tibble(variable = tabvars), esclab, by = "variable")

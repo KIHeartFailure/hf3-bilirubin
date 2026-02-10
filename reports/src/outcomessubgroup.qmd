@@ -72,7 +72,7 @@ outcomessubfunc <- function(event) {
         fn(exp(uci), 2), ")"
       ), NA),
       pint = if_else(is.na(pint), NA, fn(pint, dig = 3, p = TRUE)),
-      pop = str_replace_all(pop, ">=", "\u2265")
+      pop = str_replace_all(pop, "<=", "\u2264")
     )
 
   # plot it
@@ -98,7 +98,7 @@ outcomessubfunc <- function(event) {
     scale_x_continuous(trans = "log", breaks = c(0.25, 0.5, 1, 2, 3, 4), limits = c(.25, 4), expand = c(0, 0)) +
     scale_y_continuous(breaks = subplot$order, labels = subplot$pop) +
     labs(x = "Odds Ratio (95% CI)") +
-    ggtitle("Elevated bilirubin \nless harmfull - more harmfull")
+    ggtitle("Bilirubin \u22651.0 mg/dL\nless harmfull - more harmfull")
 
   t <- ggplot(subplot) +
     geom_text(aes(y = order, x = 1, label = estci), size = size_use / .pt, fontface = "bold") +

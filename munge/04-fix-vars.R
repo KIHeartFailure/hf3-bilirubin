@@ -7,11 +7,11 @@ escdata <- escdata %>%
     ), levels = 1:3, labels = c("AHF-ref", "AHF-mref", "AHF-pef")),
     DMAGE_cat = factor(case_when(
       is.na(DMAGE) ~ NA_real_,
-      DMAGE < 70 ~ 0,
-      DMAGE >= 70 ~ 1
-    ), levels = 0:1, labels = c("<70", ">=70")),
+      DMAGE <= 70 ~ 0,
+      DMAGE > 70 ~ 1
+    ), levels = 0:1, labels = c("<=70", ">70")),
     BASEDT = dmy(BASEDT),
-    Bili_mgdL_cat = ynfac(if_else(Bili_mgdL > 1, 1, 0)),
+    Bili_mgdL_cat = factor(if_else(Bili_mgdL > 1, 1, 0), levels = 0:1, labels = c("Bilirubin <1.0 mg/dL", "Bilirubin >=1.0 mg/dL")),
     hfdur = factor(case_when(
       is.na(DMHFHIST) ~ NA_character_,
       DMHFHIST == "No (now de Novo)" ~ "No",
@@ -78,21 +78,86 @@ escdata <- escdata %>%
         ITVASVAS == "Yes" ~ 1,
       TRUE ~ 0
     )),
-    death = case_when(
-      death_baseline_C == 0 ~ "Alive",
-      TRUE ~ as.character(DCDTHCS)
-    ),
-    death = str_remove_all(death, " cause"),
-    death = factor(death, levels = c("Alive", str_remove_all(levels(escdata %>% pull(DCDTHCS)), " cause"))),
+    death = factor(case_when(
+      is.na(death_baseline_C) ~ NA_real_,
+      death_baseline_C == 0 ~ 0,
+      DCDTHCS == "Sudden death" ~ 1,
+      DCDTHCS == "Heart Failure" ~ 2,
+      DCDTHCS %in% c("Myocardial Infarction", "Peripheral embolism", "Procedure related", "Other cardiovascular cause") |
+        is.na(DCDTHCS) ~ 3,
+      DCDTHCS == "Non-cardiovascular cause" ~ 4
+    ), levels = 0:4, labels = c("Alive", "Sudden death", "Heart Failure", "Other CV", "Non-CV")),
     cvd_fu = case_when(
       is.na(F1VITAL) ~ NA_real_,
-      F1VITAL == "Alive" | F1DTHCSP == "Other cardiovascular cause" ~ 0,
+      F1VITAL == "Alive" | F1DTHCSP %in% c("Non-cardiovascular cause", "Systemic haemorrhage") ~ 0,
       TRUE ~ 1
     ),
     cvdhfh = case_when(
       is.na(F1HOSP) | is.na(cvd_fu) ~ NA_real_,
       F1HOSP > 0 | cvd_fu == 1 ~ 1,
       TRUE ~ 0
+    )
+  )
+
+
+# nt/bnp tertiles
+nt <- escdata %>%
+  reframe(ntsum = list(enframe(quantile(Nt_pgmL,
+    probs = c(0.33, 0.66),
+    na.rm = TRUE
+  ))), .by = ef_cat) %>%
+  unnest(cols = c(ntsum)) %>%
+  pivot_wider(names_from = name, values_from = value)
+
+bnp <- escdata %>%
+  reframe(bnpsum = list(enframe(quantile(BNP_pgmL,
+    probs = c(0.33, 0.66),
+    na.rm = TRUE
+  ))), .by = ef_cat) %>%
+  unnest(cols = c(bnpsum)) %>%
+  pivot_wider(names_from = name, values_from = value)
+
+escdata <- left_join(
+  escdata,
+  nt,
+  by = "ef_cat"
+)
+escdata <- left_join(
+  escdata,
+  bnp,
+  by = "ef_cat"
+) %>%
+  mutate(
+    tmpNT = case_when(
+      Nt_pgmL < `33%.x` ~ 1,
+      Nt_pgmL < `66%.x` ~ 2,
+      Nt_pgmL >= `66%.x` ~ 3
+    ),
+    tmpBNP = case_when(
+      BNP_pgmL < `33%.y` ~ 1,
+      BNP_pgmL < `66%.y` ~ 2,
+      BNP_pgmL >= `66%.y` ~ 3
+    ),
+    BNP_NT_cat = factor(
+      coalesce(tmpNT, tmpBNP),
+      levels = 1:3,
+      labels = c("1st tertile within EF", "2nd tertile within EF", "3rd tertile within EF")
+    )
+  ) %>%
+  select(-`33%.x`, -`66%.x`, -`33%.y`, -`66%.y`)
+
+tapse <- escdata %>%
+  summarise(med = quantile(OPTAPSE, probs = c(0.5), na.rm = TRUE))
+
+escdata <- escdata %>%
+  mutate(
+    OPTAPSE_cat = factor(
+      case_when(
+        OPTAPSE <= tapse$med ~ 1,
+        OPTAPSE > tapse$med ~ 2
+      ),
+      levels = 1:2,
+      labels = c("<=median", ">=median")
     )
   )
 

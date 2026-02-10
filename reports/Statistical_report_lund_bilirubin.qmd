@@ -104,6 +104,36 @@ differences with the Kruskal-Wallis test.
 
 # Results
 
+```{r}
+med <- escdata %>%
+  summarise(
+    med = fn(median(DMAGE, na.rm = T), dig = 0),
+    q1 = fn(quantile(DMAGE, na.rm = T, probs = 0.25), dig = 0),
+    q3 = fn(quantile(DMAGE, na.rm = T, probs = 0.75), dig = 0)
+  ) %>%
+  mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
+  pull(out)
+
+medbili <- escdata %>%
+  summarise(
+    med = fn(median(Bili_mgdL, na.rm = T), dig = 0),
+    min = fn(min(Bili_mgdL, na.rm = T), dig = 0),
+    max = fn(max(Bili_mgdL, na.rm = T), dig = 0),
+    q1 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.25), dig = 0),
+    q3 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.75), dig = 0)
+  ) %>%
+  mutate(out = paste0(med, " (", min, ", ", q1, "-", q3, ", ", max, ")")) %>%
+  pull(out)
+
+percfem <- escdata %>%
+  count(DMSEX) %>%
+  mutate(perc = fn(n / sum(n) * 100, 0)) %>%
+  filter(DMSEX == "Female") %>%
+  pull(perc)
+```
+
+The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-q3, max) bilirubin is `r medbili`. 
+
 ## Baseline characteristics
 
 {{< include src/basetab.qmd >}}
@@ -118,9 +148,11 @@ differences with the Kruskal-Wallis test.
 
 \clearpage
 
-{{< include src/figbilirubin_categorical.qmd >}}
+{{< include src/figbilirubincategorical.qmd >}}
 
 \clearpage
+
+NOTE: MÅSTE FIXA CENTRERING RUNT 1
 
 {{< include src/inhospdeathspline.qmd >}}
 
@@ -136,7 +168,9 @@ differences with the Kruskal-Wallis test.
 
 \clearpage
 
-{{< include src/outcomes_subgroup.qmd >}}
+NOTE: MÅSTE FIXA IMPUTRERING/JUSTERING
+
+{{< include src/outcomessubgroup.qmd >}}
 
 \clearpage
 

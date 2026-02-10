@@ -12,19 +12,21 @@ tp <- termplot(mod, se = TRUE, plot = F, terms = 1)
 # med <- quantile(data %>% pull(sos_timeprevhosphf), na.rm = T, p = 0.5)
 # med <- 0 # use 0 days instead
 
-
 plotdata <- tp$Bili_mgdL
 
 center <- with(plotdata, y[x == 1])
 
 xlims <- seq(0, 5, 1)
-ylims <- log(c(.75, 1, 1.25, 1.5, 1.75, 2))
+ylims <- log(c(.7, .8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5))
 
 plotdata <- plotdata %>%
   mutate(
     or = y - center,
     lci = y - global_z05 * se - center,
     uci = y + global_z05 * se - center,
+    # or = y ,
+    # lci = y - global_z05 * se,
+    # uci = y + global_z05 * se,
     lci = if_else(lci < min(ylims), min(ylims), lci),
     uci = if_else(uci > max(ylims), max(ylims), uci)
   )
@@ -37,14 +39,19 @@ if (!is.null(ylims) & !is.null(xlims)) {
 }
 
 p <- ggplot(plotdata, aes(x = x, y = or)) +
-  geom_hline(yintercept = log(1), linetype = "dashed", color = "grey", linewidth = 0.6) +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "grey", linewidth = 0.6) +
+  # geom_hline(yintercept = log(1), linetype = "dashed", color = "grey", linewidth = 0.6) +
+  geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
   geom_line(linewidth = 1.5, color = global_cols[1]) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = global_cols[1], alpha = 0.3, linetype = 0) +
   geom_rug(sides = "b") +
   theme_classic() +
   theme(
-    text = element_text(size = 19, color = "black", face = "bold"),
+    panel.grid.major.y = element_line(
+      color = "lightgrey",
+      linewidth = 0.5,
+      linetype = 2
+    ),
+    text = element_text(size = 22, color = "black", face = "bold"),
     axis.text = element_text(color = "black")
   ) +
   labs(x = "Bilirubin (mg/dL)", y = "Odds Ratio (95% CI)") +
