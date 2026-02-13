@@ -5,10 +5,10 @@
 
 size_use <- 16
 
-outcomessubfunc_inner <- function(event, intvar, intvarname) {
+outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
   levsint <- levels(escdata %>% pull(!!sym(intvar)))
   nlevsint <- length(levsint)
-
+  modvarstmp <- setdiff(modvars, intvar)
   out <- tibble(
     pop = NA_character_,
     est = NA_real_,
@@ -20,43 +20,147 @@ outcomessubfunc_inner <- function(event, intvar, intvarname) {
   out[, 1] <- c(intvarname, paste0("  ", levsint))
 
   for (i in seq_along(levsint)) {
-    mod <- summary(glm(formula(paste0(event, "~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "')")),
-      data = escdata, family = binomial(link = "logit"),
-    ))
+    if (model == "log") {
+      modraw <- with(
+        impdata,
+        glm(
+          formula(paste0(
+            event, "~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
+            paste0(modvarstmp, collapse = " + ")
+          )),
+          family = binomial(link = "logit")
+        )
+      )
+      mod <- summary(pool(modraw))
 
-    out[i + 1, 2] <- mod$coefficients[2, "Estimate"]
-    out[i + 1, 3] <- mod$coefficients[2, "Std. Error"]
-    out[i + 1, 4] <- mod$coefficients[2, "Pr(>|z|)"]
+      out[i + 1, 2] <- mod[2, "estimate"]
+      out[i + 1, 3] <- mod[2, "std.error"]
+      out[i + 1, 4] <- mod[2, "p.value"]
 
-    if (i == 1) {
-      out[1, 5] <- last(mod$coefficients[, "Pr(>|z|)"])
+      if (i == 1) {
+        if (nlevsint == 2) {
+          out[1, 5] <- last(mod$p.value)
+        } else {
+          mod_noint <- with(
+            impdata,
+            glm(
+              formula(paste0(
+                event, "~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
+                paste0(modvarstmp, collapse = " + ")
+              )),
+              family = binomial(link = "logit")
+            )
+          )
+
+          pint <- mice::D1(modraw, mod_noint)
+          out[1, 5] <- pint$result[, "P(>F)"]
+        }
+      }
+    }
+
+    if (model == "nb") {
+      modraw <- with(impdata, glm.nb(formula(paste0(
+        event, " ~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + offset(log(", time, ")) + ", paste0(modvarstmp, collapse = " + ")
+      ))))
+      mod <- summary(pool(modraw))
+
+      out[i + 1, 2] <- mod[2, "estimate"]
+      out[i + 1, 3] <- mod[2, "std.error"]
+      out[i + 1, 4] <- mod[2, "p.value"]
+
+      if (i == 1) {
+        if (nlevsint == 2) {
+          out[1, 5] <- last(mod$p.value)
+        } else {
+          mod_noint <- with(impdata, glm.nb(formula(paste0(
+            event, " ~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + offset(log(", time, ")) + ", paste0(modvarstmp, collapse = " + ")
+          ))))
+
+          pint <- mice::D1(modraw, mod_noint)
+          out[1, 5] <- pint$result[, "P(>F)"]
+        }
+      }
+    }
+    if (model == "cox") {
+      modraw <- with(impdata, coxph(formula(paste0(
+        "Surv(", time, ",", event, ") ~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
+        paste0(modvarstmp, collapse = " + ")
+      ))))
+
+      mod <- summary(pool(modraw))
+
+      out[i + 1, 2] <- mod[1, "estimate"]
+      out[i + 1, 3] <- mod[1, "std.error"]
+      out[i + 1, 4] <- mod[1, "p.value"]
+
+      if (i == 1) {
+        if (nlevsint == 2) {
+          out[1, 5] <- last(mod$p.value)
+        } else {
+          mod_noint <- with(impdata, coxph(formula(paste0(
+            "Surv(", time, ",", event, ") ~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
+            paste0(modvarstmp, collapse = " + ")
+          ))))
+
+          pint <- mice::D1(modraw, mod_noint)
+          out[1, 5] <- pint$result[, "P(>F)"]
+        }
+      }
     }
   }
   return(out)
 }
-outcomessubfunc <- function(event) {
-  mod <- summary(glm(formula(paste0(event, "~ Bili_mgdL_cat")),
-    data = escdata, family = binomial(link = "logit"),
-  ))
+outcomessubfunc <- function(event, time = NULL, model) {
+  if (model == "log") {
+    mod <- with(
+      impdata,
+      glm(
+        formula(paste0(
+          event, "~ Bili_mgdL_cat + ",
+          paste0(modvars, collapse = " + ")
+        )),
+        family = binomial(link = "logit")
+      )
+    )
+    rownr <- 2
+  }
+  if (model == "nb") {
+    mod <- with(impdata, glm.nb(formula(paste0(
+      event, " ~ Bili_mgdL_cat + offset(log(", time, "))  + ", paste0(modvars, collapse = " + ")
+    ))))
+
+    rownr <- 2
+  }
+
+  if (model == "cox") {
+    mod <- with(impdata, coxph(formula(paste0(
+      "Surv(", time, ",", event, ") ~ Bili_mgdL_cat + ", paste0(modvars, collapse = " + ")
+    ))))
+
+    rownr <- 1
+  }
+
+  # same for all models
+  mod <- summary(pool(mod))
   out <- tibble(
     pop = "Overall",
-    est = mod$coefficients[2, "Estimate"],
-    se = mod$coefficients[2, "Std. Error"],
-    p = mod$coefficients[2, "Pr(>|z|)"],
+    est = mod[rownr, "estimate"],
+    se = mod[rownr, "std.error"],
+    p = mod[rownr, "p.value"],
     pint = NA
   )
 
   outcomessub <- outcomessubfunc_inner(
-    event = event, intvar = "ef_cat",
-    intvarname = "EF (%)"
+    event = event, time = time, intvar = "ef_cat",
+    intvarname = "EF (%)", model = model
   )
   outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
-    event = event, intvar = "DMSEX",
-    intvarname = "Sex"
+    event = event, time = time, intvar = "DMSEX",
+    intvarname = "Sex", model = model
   ))
   outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
-    event = event, intvar = "DMAGE_cat",
-    intvarname = "Age (years)"
+    event = event, time = time, intvar = "DMAGE_cat",
+    intvarname = "Age (years)", model = model
   ))
   out <- bind_rows(out, outcomessub)
 
@@ -77,6 +181,18 @@ outcomessubfunc <- function(event) {
 
   # plot it
 
+  if (model == "log") {
+    estname <- "Odds Ratio"
+  }
+  if (model == "cox") {
+    estname <- "Hazard Ratio"
+  }
+  if (model == "nb") {
+    estname <- "Rate Ratio"
+  }
+  xname <- paste0(estname, " (95% CI)")
+  xname2 <- paste0(estname, "\n(95% CI)")
+
   p <- ggplot(subplot, aes(x = exp(est), y = order, color = cols)) +
     # Add a reference dashed line at 1
     geom_vline(xintercept = 1, linetype = "dashed", color = "darkgrey", linewidth = 0.6) +
@@ -95,14 +211,14 @@ outcomessubfunc <- function(event) {
       plot.title = element_text(hjust = 0.5),
       panel.grid.major.y = element_line(colour = "grey94")
     ) +
-    scale_x_continuous(trans = "log", breaks = c(0.25, 0.5, 1, 2, 3, 4), limits = c(.25, 4), expand = c(0, 0)) +
+    scale_x_continuous(trans = "log", breaks = c(0.3, 0.5, 1, 2, 3, 4), limits = c(.3, 4)) +
     scale_y_continuous(breaks = subplot$order, labels = subplot$pop) +
-    labs(x = "Odds Ratio (95% CI)") +
-    ggtitle("Bilirubin \u22651.0 mg/dL\nless harmfull - more harmfull")
+    labs(x = xname) +
+    ggtitle("Bilirubin >1.0 mg/dL\nless harmfull - more harmfull")
 
   t <- ggplot(subplot) +
     geom_text(aes(y = order, x = 1, label = estci), size = size_use / .pt, fontface = "bold") +
-    ggtitle("Odds Ratio\n(95% CI)") +
+    ggtitle(xname2) +
     xlab("  ") +
     theme_classic() +
     theme(
@@ -152,7 +268,7 @@ outcomessubfunc <- function(event) {
 #| fig-width: 10
 #| fig-height: 6
 
-outcomessubfunc(event = "death_baseline_C")
+outcomessubfunc(event = "death_baseline_C", model = "log")
 ```
 
 ```{r}
@@ -160,11 +276,11 @@ outcomessubfunc(event = "death_baseline_C")
 #| cache: true
 #| cache.comments: false
 #| dependson: outcomessubfunc
-#| fig-cap: "FU CVD/1st HFH"
+#| fig-cap: "FU CVD/HFH"
 #| fig-width: 10
 #| fig-height: 6
 
-outcomessubfunc(event = "cvdhfh")
+outcomessubfunc(event = "cvdhfh", time = "time_death_fup", model = "nb")
 ```
 
 ```{r}
@@ -176,5 +292,5 @@ outcomessubfunc(event = "cvdhfh")
 #| fig-width: 10
 #| fig-height: 6
 
-outcomessubfunc(event = "death_fup")
+outcomessubfunc(event = "death_fup", time = "time_death_fup", model = "cox")
 ```

@@ -214,12 +214,14 @@ tab <- left_join(tab,
 # footnotes
 tab <- tab %>%
   mutate(
-    footnote1 = if_else(!is.na(var) & var %in% modvars, footnote_marker_alphabet(1, format = "latex"), "")
+    footnote1 = if_else(!is.na(var) & var %in% str_remove_all(modvars, "ns\\(|\\, df = 4\\)"), footnote_marker_alphabet(1, format = "latex"), ""),
+    footnote2 = if_else(!is.na(var) & var %in% impvars, footnote_marker_alphabet(2, format = "latex"), "")
   ) %>%
   unite(footnote, starts_with("footnote"), sep = "")
 
 footnotetext <- c(
-  "Adjusted for in regression models."
+  "Adjusted for in regression models.",
+  "Included in multiple imputation model."
 )
 
 # excel
@@ -231,7 +233,8 @@ tab_xls <- tab %>%
   ) %>%
   select(Variable, pmis:p) %>%
   add_row(Variable = "") %>%
-  add_row(Variable = paste0("a ", footnotetext[1]))
+  add_row(Variable = paste0("a ", footnotetext[1])) %>%
+  add_row(Variable = paste0("b ", footnotetext[2]))
 
 
 levs <- levels(escdata %>% pull(Bili_mgdL_cat))

@@ -8,8 +8,8 @@ plotdata <- escdata %>%
   count(death) %>%
   mutate(
     p = n / sum(n) * 100,
-    pprint = fn(p, 1),
-    Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, ">=", "\u2265"))
+    pprint = fn(p, 0),
+    Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, "<=", "\u2264"))
   ) %>%
   ungroup()
 
@@ -29,7 +29,7 @@ p <- ggplot(plotdata, aes(y = p, fill = death, x = Bili_mgdL_cat)) +
     legend.position = "bottom",
     legend.title = element_blank()
   ) +
-  labs(y = "In-hospital death (%)") +
+  labs(y = "Cause of in-hospital death (%)") +
   # scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
   scale_y_continuous(limits = c(0, 100)) +
   geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 6, fontface = "bold")

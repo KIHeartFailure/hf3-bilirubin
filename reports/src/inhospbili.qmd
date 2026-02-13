@@ -1,7 +1,8 @@
 ```{r}
 #| label: fig-inhospdeathcause2
-#| fig-cap: "Cause in-hospital death vs bilirubin 2"
+#| fig-cap: "In-hospital outcomes vs bilirubin"
 #| fig-subcap:
+#| - In-hospital death
 #| - In hosp worsening HF
 #| - Vasoactive support any of dobuta dopa milri enox lev yes/no
 #| - Vasocative support any of norepi epi vasopress yes/no
@@ -10,25 +11,24 @@
 #| - Short term mech support
 #| cache: true
 #| cache.comments: false
-#| layout-ncol: 2
+#| layout-ncol: 3
 #| layout-nrow: 3
 
 barplotfunc <- function(var, varname) {
   plotdata <- escdata %>%
-    filter(!is.na(death_baseline_C) & !is.na(!!sym(var))) %>%
-    group_by(Bili_mgdL_cat, !!sym(var)) %>%
-    count(death_baseline_C) %>%
+    filter(!is.na(!!sym(var))) %>%
+    group_by(Bili_mgdL_cat) %>%
+    count(!!sym(var)) %>%
     mutate(
       p = n / sum(n) * 100,
-      pprint = fn(p, 1),
-      Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, ">=", "\u2265"))
+      pprint = fn(p, 0),
+      Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, "<=", "\u2264"))
     ) %>%
-    ungroup() %>%
-    filter(death_baseline_C == 1)
+    ungroup()
 
   p <- ggplot(plotdata, aes(y = p, x = Bili_mgdL_cat, fill = !!sym(var))) +
     geom_bar(position = "dodge", stat = "identity") +
-    scale_fill_manual(values = global_cols[c(3, 4)]) +
+    scale_fill_manual(values = global_cols[c(1, 2)]) +
     theme_classic() +
     theme(
       panel.grid.major.y = element_line(
@@ -36,14 +36,14 @@ barplotfunc <- function(var, varname) {
         linewidth = 0.5,
         linetype = 2
       ),
-      text = element_text(size = 19, face = "bold"),
+      text = element_text(size = 22, face = "bold"),
       axis.text = element_text(color = "black"),
       legend.position = "bottom",
       axis.title.x = element_blank()
     ) +
-    labs(y = "In-hospital death (%)", fill = varname) +
+    labs(fill = varname, y = "Proportion (%)") +
     # scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
-    scale_y_continuous(limits = c(0, 50)) +
+    scale_y_continuous(limits = c(0, 100)) +
     geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 6, fontface = "bold")
 
   if (output) {
@@ -52,9 +52,10 @@ barplotfunc <- function(var, varname) {
   p
 }
 
+barplotfunc(var = "death_baseline_C_fac", varname = "In-hospital death")
 barplotfunc(var = "DCWHF", varname = "Worsening of HF")
 barplotfunc("vaso_dobuta_dopa_milri_enox_lev", "Dobutamine/Dopamine/Milrinone/Enoximone/Levosimendan")
-barplotfunc("Vaso_norepi_epi_vasopress", "Norepinephrine/Epinephrine/Vasopressin")
+barplotfunc("vaso_norepi_epi_vasopress", "Norepinephrine/Epinephrine/Vasopressin/Other")
 barplotfunc("ITNITH", "Nitrates IV")
 barplotfunc("ITDIURH", "Diuretics IV")
 barplotfunc("ITSTMEC", "Short-term mechanical circulatory support")

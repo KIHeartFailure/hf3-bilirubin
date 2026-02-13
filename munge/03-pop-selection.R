@@ -26,7 +26,7 @@ flow <- flow %>%
   )
 
 escdata <- escdata %>%
-  mutate(ef = coalesce(OPEF, DMEFLP)) %>% # use EF?
+  mutate(ef = coalesce(OPEF, ITEF, DMEFLP)) %>%
   filter(!is.na(ef))
 flow <- flow %>%
   add_row(

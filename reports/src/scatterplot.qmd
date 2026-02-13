@@ -35,7 +35,7 @@ scatter <- function(var, name, ylim = NULL) {
       axis.text = element_text(color = "black")
     ) +
     labs(x = "Bilirubin (mg/dL)", y = name) +
-    # geom_text(y = min(escdata %>% pull(!!sym(var)), na.rm = T) + min(escdata %>% pull(!!sym(var)), na.rm = T) * 0.05, x = 10, label = rprint, size = 6) +
+    geom_text(y = max(ylim) - max(ylim) * 0.04, x = 4, label = rprint, size = 6.5) +
     scale_x_continuous(limits = c(0, 5))
 
 
@@ -51,7 +51,7 @@ scatter <- function(var, name, ylim = NULL) {
 }
 scatter(var = "OPBP1", name = "Systolic blood pressure (mmHg)", ylim = seq(50, 250, 50))
 scatter(var = "logNt_pgmL", "log(NT-proBNP) (pg/ml)", ylim = seq(2, 14, 2))
-scatter(var = "EF", "EF (%)", ylim = seq(0, 80, 20))
+scatter(var = "ef", "EF (%)", ylim = seq(0, 80, 20))
 scatter(var = "CKDEPI", "eGFR (ml/min/1.73m²)", ylim = seq(0, 200, 50))
 scatter(var = "OPALB", "Albumin (g/dL)", ylim = seq(0, 8, 2))
 scatter(var = "OPSOD", "Sodium (mmol/L)", ylim = seq(100, 160, 20))

@@ -22,8 +22,11 @@ library(tableone)
 
 # outcomes
 library(survival)
-library(epitools)
 library(splines)
+library(MASS)
+
+# imputation
+library(mice)
 
 # plots
 library(ggplot2)

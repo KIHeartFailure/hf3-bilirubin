@@ -2,31 +2,26 @@
 #| label: fig-inhospdeath
 #| fig-cap: "Association between in-hospital death and bilirubin (unadjusted)"
 
-mod <- glm(death_baseline_C ~ ns(Bili_mgdL),
+mod <- glm(death_baseline_C ~ ns(Bili_mgdL, df = 4),
   data = escdata, family = binomial(link = "logit"),
 )
 
 tp <- termplot(mod, se = TRUE, plot = F, terms = 1)
 
 # OR = 1 at median https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf
-# med <- quantile(data %>% pull(sos_timeprevhosphf), na.rm = T, p = 0.5)
-# med <- 0 # use 0 days instead
 
 plotdata <- tp$Bili_mgdL
 
 center <- with(plotdata, y[x == 1])
 
 xlims <- seq(0, 5, 1)
-ylims <- log(c(.7, .8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5))
+ylims <- log(c(0.4, .5, .7, 1, 1.5, 2, 3, 4, 5))
 
 plotdata <- plotdata %>%
   mutate(
     or = y - center,
     lci = y - global_z05 * se - center,
     uci = y + global_z05 * se - center,
-    # or = y ,
-    # lci = y - global_z05 * se,
-    # uci = y + global_z05 * se,
     lci = if_else(lci < min(ylims), min(ylims), lci),
     uci = if_else(uci > max(ylims), max(ylims), uci)
   )
@@ -39,7 +34,6 @@ if (!is.null(ylims) & !is.null(xlims)) {
 }
 
 p <- ggplot(plotdata, aes(x = x, y = or)) +
-  # geom_hline(yintercept = log(1), linetype = "dashed", color = "grey", linewidth = 0.6) +
   geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
   geom_line(linewidth = 1.5, color = global_cols[1]) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = global_cols[1], alpha = 0.3, linetype = 0) +
@@ -57,7 +51,8 @@ p <- ggplot(plotdata, aes(x = x, y = or)) +
   labs(x = "Bilirubin (mg/dL)", y = "Odds Ratio (95% CI)") +
   scale_x_continuous(
     breaks = xlims,
-    limits = c(min(xlims), max(xlims))
+    limits = c(min(xlims), max(xlims)),
+    expand = c(0, 0)
   ) +
   scale_y_continuous(
     breaks = ylims,

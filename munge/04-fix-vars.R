@@ -1,9 +1,9 @@
 escdata <- escdata %>%
   mutate(
     ef_cat = factor(case_when(
-      EF <= 40 ~ 1,
-      EF < 50 ~ 2,
-      EF >= 50 ~ 3,
+      ef <= 40 ~ 1,
+      ef < 50 ~ 2,
+      ef >= 50 ~ 3,
     ), levels = 1:3, labels = c("AHF-ref", "AHF-mref", "AHF-pef")),
     DMAGE_cat = factor(case_when(
       is.na(DMAGE) ~ NA_real_,
@@ -11,17 +11,17 @@ escdata <- escdata %>%
       DMAGE > 70 ~ 1
     ), levels = 0:1, labels = c("<=70", ">70")),
     BASEDT = dmy(BASEDT),
-    Bili_mgdL_cat = factor(if_else(Bili_mgdL > 1, 1, 0), levels = 0:1, labels = c("Bilirubin <1.0 mg/dL", "Bilirubin >=1.0 mg/dL")),
+    Bili_mgdL_cat = factor(if_else(Bili_mgdL > 1, 1, 0), levels = 0:1, labels = c("Bilirubin <=1.0 mg/dL", "Bilirubin >1.0 mg/dL")),
+    OPARYT_cat = ynfac(case_when(
+      is.na(OPARYT) ~ NA_real_,
+      OPARYT %in% c("Atrial fibrillation", "Atrial flutter") ~ 1,
+      TRUE ~ 0
+    )),
     hfdur = factor(case_when(
       is.na(DMHFHIST) ~ NA_character_,
       DMHFHIST == "No (now de Novo)" ~ "No",
       TRUE ~ DMHFDUR
     ), levels = c("No", levels(escdata$DMHFDUR))),
-    prevhfhosp = ynfac(case_when(
-      is.na(DMHFHIST) ~ NA_real_,
-      DMHFHIST == "Yes, without previous hospitalization" ~ 1,
-      TRUE ~ 0
-    )),
     OPBP1_cat = factor(case_when(
       is.na(OPBP1) ~ NA_real_,
       OPBP1 < 90 ~ 1,
@@ -39,6 +39,19 @@ escdata <- escdata %>%
       Nt_pgmL >= 10000 ~ 4
     ), levels = 1:4, labels = c("<1000", "1000-2999", "3000-9999", ">=10000")),
     logNt_pgmL = log(Nt_pgmL),
+    # ITLAVOLI = ITLAVOL / BSA,
+    # OPLAVOLI = coalesce(OPLAVOLI, ITLAVOLI),
+    # OPINTST = coalesce(OPINTST, ITINTST),
+    # OPPOSTWT = coalesce(OPPOSTWT, ITPOSTWT),
+    # ITLVMI = ITLVM / BSA,
+    # OPLVMI = coalesce(OPLVMI, ITLVMI),
+    # OPMITREG = coalesce(OPMITREG, ITMITREG),
+    # OPTRICUS = coalesce(OPTRICUS, ITTRICUS),
+    # OPRVF = coalesce(OPRVF, ITRVF),
+    # OPTAPSE = coalesce(OPTAPSE, ITTAPSE),
+    # OPIVDIM = coalesce(OPIVDIM, ITIVDIM),
+    # OPINFVAR = coalesce(OPINFVAR, ITINFVAR),
+    # OPPAP = coalesce(OPPAP, ITPAP),
     OPABD_congest = ynfac(case_when(
       is.na(OPABD) ~ NA_real_,
       OPABD == "Pulmonary congestion or oedema" ~ 1,
@@ -62,7 +75,7 @@ escdata <- escdata %>%
     rasiarni = ynfac(case_when(
       is.na(MDACEH_C) | is.na(MDATH_C) | is.na(MDARNIH_C) ~ NA_real_,
       MDACEH_C == "Yes" | MDATH_C == "Yes" | MDARNIH_C == "Yes" ~ 1,
-      TRUE ~ 1
+      TRUE ~ 0
     )),
     vaso_dobuta_dopa_milri_enox_lev = ynfac(case_when(
       ITVASDOB == "Yes" |
@@ -72,33 +85,39 @@ escdata <- escdata %>%
         ITVASLEV == "Yes" ~ 1,
       TRUE ~ 0
     )),
-    Vaso_norepi_epi_vasopress = ynfac(case_when(
+    vaso_norepi_epi_vasopress = ynfac(case_when(
       ITVASNOR == "Yes" |
         ITVASEPI == "Yes" |
-        ITVASVAS == "Yes" ~ 1,
+        ITVASVAS == "Yes" |
+        ITVASOTH == "Yes" ~ 1,
       TRUE ~ 0
     )),
+    death_baseline_C_fac = ynfac(death_baseline_C),
     death = factor(case_when(
       is.na(death_baseline_C) ~ NA_real_,
       death_baseline_C == 0 ~ 0,
-      DCDTHCS == "Sudden death" ~ 1,
-      DCDTHCS == "Heart Failure" ~ 2,
-      DCDTHCS %in% c("Myocardial Infarction", "Peripheral embolism", "Procedure related", "Other cardiovascular cause") |
-        is.na(DCDTHCS) ~ 3,
-      DCDTHCS == "Non-cardiovascular cause" ~ 4
-    ), levels = 0:4, labels = c("Alive", "Sudden death", "Heart Failure", "Other CV", "Non-CV")),
+      DCDTHCS == "Heart Failure" ~ 1,
+      DCDTHCS %in% c("Myocardial Infarction", "Peripheral embolism", "Procedure related", "Other cardiovascular cause", "Sudden death") |
+        is.na(DCDTHCS) ~ 2,
+      DCDTHCS == "Non-cardiovascular cause" ~ 3
+    ), levels = 0:3, labels = c("Alive", "Heart Failure", "Other CV", "Non-CV")),
+    # fix that deaths after contact date
+    enddtm = pmin(F1DEATHDTD1, F1CONTDTD1, na.rm = T),
+    time_death_fup = as.numeric(enddtm - BASEDT),
+    death_fup = case_when(
+      F1DEATHDTD1 > F1CONTDTD1 ~ 0,
+      TRUE ~ death_fup
+    ),
     cvd_fu = case_when(
-      is.na(F1VITAL) ~ NA_real_,
-      F1VITAL == "Alive" | F1DTHCSP %in% c("Non-cardiovascular cause", "Systemic haemorrhage") ~ 0,
+      is.na(death_fup) ~ NA_real_,
+      death_fup == 0 | F1DTHCSP %in% c("Non-cardiovascular cause", "Systemic haemorrhage") ~ 0,
       TRUE ~ 1
     ),
     cvdhfh = case_when(
       is.na(F1HOSP) | is.na(cvd_fu) ~ NA_real_,
-      F1HOSP > 0 | cvd_fu == 1 ~ 1,
-      TRUE ~ 0
+      TRUE ~ F1HOSP + cvd_fu
     )
   )
-
 
 # nt/bnp tertiles
 nt <- escdata %>%
@@ -157,9 +176,18 @@ escdata <- escdata %>%
         OPTAPSE > tapse$med ~ 2
       ),
       levels = 1:2,
-      labels = c("<=median", ">=median")
+      labels = c("<=median", ">median")
     )
   )
 
 escdata <- escdata %>%
-  mutate(across(where(is_character), factor))
+  mutate(across(where(is_character), factor)) %>%
+  mutate(across(where(is.factor), droplevels))
+
+for (i in seq_along(tabvars)) {
+  if (is.factor(escdata %>% pull(!!sym(tabvars[i]))) & nlevels(escdata %>% pull(!!sym(tabvars[i]))) <= 1) stop("Only 1 level for tab vars")
+}
+
+for (i in seq_along(tabvars)) {
+  if (is.factor(escdata %>% pull(!!sym(tabvars[i]))) & nlevels(escdata %>% pull(!!sym(tabvars[i]))) <= 1) print(paste0("Only 1 level for ", tabvars[i]))
+}

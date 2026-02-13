@@ -4,13 +4,13 @@ tabvars <- c(
   "Bili_mgdL",
   "OPALB",
   "DMHDYS",
-  "EF", # ???
+  "ef_cat",
   "OPNYHA",
   "DMAGE",
   "DMSEX",
   "BMI",
   "hfdur",
-  "prevhfhosp",
+  "PREV_HF_HOSPI",
   "DMPUA_C",
   "DMAFIB",
   "DMDIAB_C",
@@ -43,10 +43,10 @@ tabvars <- c(
   "OPTROPI",
   "OPTROPT",
   "OPCRP",
-  "OPARYT",
+  "OPARYT_cat",
   "OPABD_congest",
   "OPABD_pe",
-  "OPEF",
+  "ef",
   "OPLAVOLI",
   "OPINTST",
   "OPPOSTWT",
@@ -71,10 +71,38 @@ modvars <- c(
   "DMAGE",
   "DMSEX",
   "ef_cat",
+  "ns(OPBP1, df = 4)",
+  "ns(Hb_gdL, df = 4)",
+  "ns(CKDEPI, df = 4)",
+  "BNP_NT_cat"
+)
+
+impvars <- c(
+  "OPNYHA",
+  "DMAGE",
+  "DMSEX",
+  "BMI",
+  "hfdur",
+  "PREV_HF_HOSPI",
+  "DMPUA_C",
+  "DMDIAB_C",
+  "IDICD",
+  "DMCOPD",
+  "DMCCANC",
+  "DMCOGD",
+  "DMSAPN",
+  "ef_cat",
   "OPBP1",
+  "OPHR",
   "Hb_gdL",
   "CKDEPI",
-  "BNP_NT_cat"
+  "BNP_NT_cat",
+  "OPARYT",
+  "rasiarni",
+  "MDBBH_C",
+  "MDALH_C",
+  "SGLT2H_C",
+  "MDDIURH_C"
 )
 
 tmp <- left_join(tibble(variable = tabvars), esclab, by = "variable")

@@ -85,6 +85,10 @@ First patient in: `r min(escdata$BASEDT)` and last patient in: `r max(escdata$BA
 from approximately `r escdata %>% distinct(CentreId) %>% count() %>% pull(n)` 
 enrolling centers in `r escdata %>% distinct(COUNTRY) %>% count() %>% pull(n)` countries. 
 
+## Definitions
+
+EF is defined at admission, and if missing, during hospitalization and thirdly last known EF. 
+
 # Statistical analysis 
 
 ## General
@@ -93,12 +97,32 @@ All analyses were performed using `r sessionInfo()$R.version$version.string` [@r
 The level of significance is set to 5%, two-sided. No adjustment for multiple 
 comparisons were made and therefore the results should be viewed with care.
 
+## Missing data
+
+Missing data was imputed with multiple imputation (n = 20) using mice [@mice] 
+and Rubin’s rules was used for combining estimates and standard errors across imputed data sets. 
+Variables included in the model are indicated in @tbl-base. The outcomes were not imputed and the imputation was only used for the adjusted models for the outcomes. 
+
 ## Baseline characteristics
 
 Categorical variables are presented with n and percentage and tested for 
 differences with the chi-square test. 
 Continuous variables are presented with median [first quartile-third quartile] and tested for 
 differences with the Kruskal-Wallis test. 
+
+## Descriptive presentations
+
+Selected variables were presented descriptively with bar plots, box plots, violin plots and scatter plots with loess curves together with Kendall's tau correlation coefficient as appropriate.  
+
+## Association between bilirubin and outcomes
+
+Logistic regression models are used to model in-hospital death. 
+
+Cox proportional hazards regression are used to model the time to death at approximately 1 year follow-up for patients discharged alive and available data. 
+
+Negative binomial regression are used to model the composite outcome of number of heart failure hospitalisations and cv deaths at approximately 1 year follow-up for patients discharged alive and available data where the log of follow-up time was included as an offset in the model.  
+
+Crude analyses were presented using natural cubic splines with 3 knots placed at the quantiles. Adjusted analyses were performed where adjustment was performed for variables indicated in @tbl-base, where the continuous variables (except for age) where modeled using natural cubic splines with 3 knots placed at the quantiles, and presented in Forest plots.
 
 \clearpage
 
@@ -116,11 +140,11 @@ med <- escdata %>%
 
 medbili <- escdata %>%
   summarise(
-    med = fn(median(Bili_mgdL, na.rm = T), dig = 0),
-    min = fn(min(Bili_mgdL, na.rm = T), dig = 0),
-    max = fn(max(Bili_mgdL, na.rm = T), dig = 0),
-    q1 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.25), dig = 0),
-    q3 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.75), dig = 0)
+    med = fn(median(Bili_mgdL, na.rm = T), dig = 1),
+    min = fn(min(Bili_mgdL, na.rm = T), dig = 1),
+    max = fn(max(Bili_mgdL, na.rm = T), dig = 1),
+    q1 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.25), dig = 1),
+    q3 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.75), dig = 1)
   ) %>%
   mutate(out = paste0(med, " (", min, ", ", q1, "-", q3, ", ", max, ")")) %>%
   pull(out)
@@ -152,23 +176,19 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 
 \clearpage
 
-NOTE: MÅSTE FIXA CENTRERING RUNT 1
-
 {{< include src/inhospdeathspline.qmd >}}
 
 {{< include src/inhospdeathcause.qmd >}}
 
 \clearpage
 
-{{< include src/inhospdeathcause2.qmd >}}
+{{< include src/inhospbili.qmd >}}
 
 \clearpage
 
 {{< include src/cvhfhspline.qmd >}}
 
 \clearpage
-
-NOTE: MÅSTE FIXA IMPUTRERING/JUSTERING
 
 {{< include src/outcomessubgroup.qmd >}}
 
@@ -180,7 +200,7 @@ NOTE: MÅSTE FIXA IMPUTRERING/JUSTERING
 
 The R code for all data handling and statistical analyses are found: 
 
-https://github.com/KIHeartFailure/esc-bilirubin. On publication
+https://github.com/KIHeartFailure/hf3-bilirubin. On publication
 the repository will be made public so as to 
 link to it from the resulting article for increased transparency and code sharing.
 No data or output is stored in the repository. 

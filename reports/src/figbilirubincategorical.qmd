@@ -22,7 +22,7 @@
 #| layout-nrow: 4
 
 boxfunc <- function(var, name) {
-  levs <- str_replace(levels(escdata %>% pull(!!sym(var))), ">=", "\u2265")
+  levs <- str_replace(levels(escdata %>% pull(!!sym(var))), "<=", "\u2264")
   nlevs <- length(levs)
 
   p <- ggplot(escdata %>% filter(!is.na(!!sym(var))), aes(y = Bili_mgdL, x = !!sym(var), fill = !!sym(var))) +

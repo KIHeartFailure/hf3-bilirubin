@@ -8,6 +8,7 @@ source(here("munge/01-load-data.R"))
 source(here("munge/02-vars.R"))
 source(here("munge/03-pop-selection.R"))
 source(here("munge/04-fix-vars.R"))
+source(here("munge/05-imputation.R"))
 
 # Cache/save data ---------------------------------------------------------
 
@@ -20,8 +21,10 @@ save(
     "flow",
     "tabvars",
     "modvars",
+    "impvars",
     "esclab",
-    "metaesc"
+    "metaesc",
+    "impdata"
   )
 )
 

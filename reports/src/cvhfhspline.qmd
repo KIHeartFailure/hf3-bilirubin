@@ -4,33 +4,46 @@
 #| cache: true
 #| cache.comments: false
 #| fig-subcap:
-#| - FU CVD/1st HFH
+#| - FU CVD/HFH
 #| - FU All-cause death
 #| layout-ncol: 2
 #| layout-nrow: 1
 
-splinefunc <- function(outvar, outname) {
-  mod <- glm(formula(paste0(outvar, " ~ ns(Bili_mgdL)")),
-    data = escdata, family = binomial(link = "logit"),
-  )
+splinefunc <- function(outvar, outtime, outname, mod, ylims = NULL) {
+  if (mod == "cox") {
+    modmy <- coxph(
+      formula(paste0(
+        "Surv(", outtime, ",", outvar, ") ~ ns(Bili_mgdL, df = 4)"
+      )),
+      data = escdata
+    )
+  }
+  if (mod == "nb") {
+    modmy <- glm.nb(formula(paste0(outvar, " ~ ns(Bili_mgdL, df = 4) + offset(log(", outtime, "))")),
+      data = escdata %>% filter(!is.na(!!sym(outtime))),
+    )
+  }
 
-  tp <- termplot(mod, se = TRUE, plot = F, terms = 1)
+  tp <- termplot(modmy, se = TRUE, plot = F, terms = 1)
 
   # OR = 1 at median https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf
   # med <- quantile(data %>% pull(sos_timeprevhosphf), na.rm = T, p = 0.5)
   # med <- 0 # use 0 days instead
-
 
   plotdata <- tp$Bili_mgdL
 
   center <- with(plotdata, y[x == 1])
 
   xlims <- seq(0, 5, 1)
-  ylims <- log(c(.7, .8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5))
+  if (is.null(ylims)) {
+    ylims <- log(c(0.1, .7, .8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 5))
+  } else {
+    ylims <- log(ylims)
+  }
 
   plotdata <- plotdata %>%
     mutate(
-      or = y - center,
+      est = y - center,
       lci = y - global_z05 * se - center,
       uci = y + global_z05 * se - center,
       lci = if_else(lci < min(ylims), min(ylims), lci),
@@ -38,13 +51,19 @@ splinefunc <- function(outvar, outname) {
     )
 
   if (!is.null(ylims) & !is.null(xlims)) {
-    if (any(plotdata$or[plotdata$x <= max(xlims)] > max(ylims)) |
-      any(plotdata$or[plotdata$x <= max(xlims)] < min(ylims))) {
-      stop("OR is smaller or larger than ylims")
+    if (any(plotdata$est[plotdata$x <= max(xlims)] > max(ylims)) |
+      any(plotdata$est[plotdata$x <= max(xlims)] < min(ylims))) {
+      stop("est is smaller or larger than ylims")
     }
   }
+  if (mod == "cox") {
+    yname <- "Hazard Ratio (95% CI)"
+  }
+  if (mod == "nb") {
+    yname <- "Rate Ratio (95% CI)"
+  }
 
-  p <- ggplot(plotdata, aes(x = x, y = or)) +
+  p <- ggplot(plotdata, aes(x = x, y = est)) +
     # geom_hline(yintercept = log(1), linetype = "dashed", color = "grey", linewidth = 0.6) +
     geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
     geom_line(linewidth = 1.5, color = global_cols[1]) +
@@ -60,10 +79,11 @@ splinefunc <- function(outvar, outname) {
       text = element_text(size = 19, color = "black", face = "bold"),
       axis.text = element_text(color = "black")
     ) +
-    labs(x = "Bilirubin (mg/dL)", y = "Odds Ratio (95% CI)") +
+    labs(x = "Bilirubin (mg/dL)", y = yname) +
     scale_x_continuous(
       breaks = xlims,
-      limits = c(min(xlims), max(xlims))
+      limits = c(min(xlims), max(xlims)),
+      expand = c(0, 0)
     ) +
     scale_y_continuous(
       breaks = ylims,
@@ -76,6 +96,6 @@ splinefunc <- function(outvar, outname) {
   }
   p
 }
-splinefunc(outvar = "cvdhfh", "CVD/HFH")
-splinefunc("death_fup", "Death")
+splinefunc(outvar = "cvdhfh", outtime = "time_death_fup", "CVD/HFH", mod = "nb", ylims = c(0.4, .5, .7, 1, 1.5, 2, 2.5))
+splinefunc(outvar = "death_fup", "time_death_fup", outname = "Death", mod = "cox", ylims = c(0.4, .5, .7, 1, 1.5, 2, 2.5))
 ```
