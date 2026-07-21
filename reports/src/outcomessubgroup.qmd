@@ -190,7 +190,7 @@ outcomessubfunc <- function(event, time = NULL, model) {
   if (model == "nb") {
     estname <- "Rate Ratio"
   }
-  xname <- paste0(estname, " (95% CI)")
+  xname <- paste0("Adjusted ", estname, " (95% CI)")
   xname2 <- paste0(estname, "\n(95% CI)")
 
   p <- ggplot(subplot, aes(x = exp(est), y = order, color = cols)) +

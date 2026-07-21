@@ -8,6 +8,16 @@ plotdata <- bind_rows(escdata %>% mutate(ef_cat = "Overall"), escdata %>% arrang
     ef_catnum = as.numeric(ef_cat)
   )
 
+meddata <- plotdata %>%
+  group_by(ef_catnum, ef_cat) %>%
+  summarise(
+    med = fn(median(Bili_mgdL, na.rm = T), dig = 1),
+    q1 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.25), dig = 1),
+    q3 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.75), dig = 1),
+    .groups = "drop"
+  ) %>%
+  mutate(med = paste0(med, " (", q1, "-", q3, ")"))
+
 bardata <- plotdata %>%
   group_by(ef_catnum, ef_cat) %>%
   count(Bili_mgdL_cat) %>%
@@ -22,12 +32,20 @@ p <- ggplot(data = bardata, aes(x = ef_catnum + 0.1, p, fill = ef_cat)) +
   geom_bar(width = 0.2, position = position_dodge(width = 0.2), stat = "identity") +
   scale_fill_manual(values = global_cols[c(1, 2, 4, 6)]) +
   geom_boxplot(data = plotdata, aes(x = ef_catnum - 0.1, Bili_mgdL, fill = ef_cat), width = 0.2) +
-  scale_y_continuous(sec.axis = sec_axis(trans = ~ . * 10, name = "Bilirubin >1.0 mg/dL (%)"), limits = c(0, 5)) +
+  scale_y_continuous(sec.axis = sec_axis(trans = ~ . * 10, name = "Bilirubin >1.0 mg/dL (%)"), limits = c(0, 5.2)) +
   scale_x_continuous(labels = levels(plotdata %>% pull(ef_cat)), breaks = c(1, 2, 3, 4)) +
   geom_text(
     data = bardata,
     aes(x = ef_catnum + 0.1, label = pprint),
-    nudge_y = 10 * 0.03,
+    nudge_y = 10 * 0.015,
+    size = 5.5,
+    color = rep(global_cols[c(1, 2, 4, 6)]),
+    fontface = "bold",
+    check_overlap = F
+  ) +
+  geom_text(
+    data = meddata,
+    aes(x = ef_catnum - 0.1, y = 5.2, label = med),
     size = 5.5,
     color = rep(global_cols[c(1, 2, 4, 6)]),
     fontface = "bold",

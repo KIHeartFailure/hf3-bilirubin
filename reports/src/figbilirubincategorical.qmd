@@ -25,11 +25,22 @@ boxfunc <- function(var, name) {
   levs <- str_replace(levels(escdata %>% pull(!!sym(var))), "<=", "\u2264")
   nlevs <- length(levs)
 
+  meddata <- escdata %>%
+    filter(!is.na(!!sym(var))) %>%
+    group_by(!!sym(var)) %>%
+    summarise(
+      med = fn(median(Bili_mgdL, na.rm = T), dig = 1),
+      q1 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.25), dig = 1),
+      q3 = fn(quantile(Bili_mgdL, na.rm = T, probs = 0.75), dig = 1),
+      .groups = "drop"
+    ) %>%
+    mutate(med = paste0(med, " (", q1, "-", q3, ")"))
+
   p <- ggplot(escdata %>% filter(!is.na(!!sym(var))), aes(y = Bili_mgdL, x = !!sym(var), fill = !!sym(var))) +
     geom_hline(yintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
     geom_violin(trim = TRUE) +
     geom_boxplot(width = 0.1, outlier.shape = NA) +
-    scale_fill_manual(values = global_cols[1:(nlevs + 2)]) +
+    scale_fill_manual(values = global_cols[1:nlevs]) +
     theme_classic() +
     theme(
       panel.grid.major.y = element_line(
@@ -42,8 +53,16 @@ boxfunc <- function(var, name) {
       legend.position = "none"
     ) +
     labs(y = "Bilirubin (mg/dL)", x = name) +
-    scale_y_continuous(limits = c(0, 5)) +
-    scale_x_discrete(labels = levs)
+    scale_y_continuous(limits = c(0, 5.2)) +
+    scale_x_discrete(labels = levs) +
+    geom_text(
+      data = meddata,
+      aes(x = 1:nlevs, y = 5.2, label = med),
+      size = 5.5,
+      color = rep(global_cols[1:nlevs]),
+      fontface = "bold",
+      check_overlap = F
+    )
 
   if (output) {
     create_pptx(p)

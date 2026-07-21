@@ -92,6 +92,7 @@ escdata <- escdata %>%
         ITVASOTH == "Yes" ~ 1,
       TRUE ~ 0
     )),
+    OPCPRO = str_to_title(OPCPRO), 
     death_baseline_C_fac = ynfac(death_baseline_C),
     death = factor(case_when(
       is.na(death_baseline_C) ~ NA_real_,
