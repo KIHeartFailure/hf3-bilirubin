@@ -124,6 +124,8 @@ Negative binomial regression are used to model the composite outcome of number o
 
 Crude analyses were presented using natural cubic splines with 3 knots placed at the quantiles. Adjusted analyses were performed where adjustment was performed for variables indicated in @tbl-base, where the continuous variables (except for age) where modeled using natural cubic splines with 3 knots placed at the quantiles, and presented in Forest plots.
 
+The 1.2 cut-off for bilirubin was pre-specified and based on previous studies. However, we also explored the optimal cut-off for bilirubin using Youden's J statistic (Sensitivity + Specificity - 1) for the outcomes in-hospital death and death at approximately 1 year follow-up. 
+
 \clearpage
 
 # Results
@@ -164,6 +166,16 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 
 \clearpage
 
+\blandscape
+
+## Descriptive presentations
+
+{{< include src/tabef.qmd >}}
+
+\elandscape
+
+\clearpage
+
 {{< include src/figbilirubin.qmd >}}
 
 \clearpage
@@ -173,6 +185,8 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 \clearpage
 
 {{< include src/figbilirubincategorical.qmd >}}
+
+## Association between bilirubin and outcomes
 
 \clearpage
 
@@ -191,6 +205,13 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 \clearpage
 
 {{< include src/outcomessubgroup.qmd >}}
+
+### Optimal cut-off
+
+{{< include src/outcomesroc.qmd >}}
+
+Using Youden's J statistic the optimal cut-off for bilirubin with in-hospital death as outcome was `r cutoff_deathinhosp` 
+and for death during 1 year follow-up `r cutoff_deathfu`. 
 
 \clearpage
 

@@ -11,7 +11,7 @@ escdata <- escdata %>%
       DMAGE > 70 ~ 1
     ), levels = 0:1, labels = c("<=70", ">70")),
     BASEDT = dmy(BASEDT),
-    Bili_mgdL_cat = factor(if_else(Bili_mgdL > 1, 1, 0), levels = 0:1, labels = c("Bilirubin <=1.0 mg/dL", "Bilirubin >1.0 mg/dL")),
+    Bili_mgdL_cat = factor(if_else(Bili_mgdL > 1.2, 1, 0), levels = 0:1, labels = c("Bilirubin <=1.2 mg/dL", "Bilirubin >1.2 mg/dL")),
     OPARYT_cat = ynfac(case_when(
       is.na(OPARYT) ~ NA_real_,
       OPARYT %in% c("Atrial fibrillation", "Atrial flutter") ~ 1,
@@ -77,7 +77,25 @@ escdata <- escdata %>%
       MDACEH_C == "Yes" | MDATH_C == "Yes" | MDARNIH_C == "Yes" ~ 1,
       TRUE ~ 0
     )),
+    all_vaso_na = if_all(all_of(c(
+      "ITVASNO",
+      "ITVASDOB",
+      "ITVASDOP",
+      "ITVASMIL",
+      "ITVASENO",
+      "ITVASLEV",
+      "ITVASNOR",
+      "ITVASEPI",
+      "ITVASVAS",
+      "ITVASOTH"
+    )), is.na),
+    vaso_any = ynfac(case_when(
+      all_vaso_na ~ NA_real_,
+      ITVASNO == "Yes" ~ 0,
+      TRUE ~ 1
+    )),
     vaso_dobuta_dopa_milri_enox_lev = ynfac(case_when(
+      all_vaso_na ~ NA_real_,
       ITVASDOB == "Yes" |
         ITVASDOP == "Yes" |
         ITVASMIL == "Yes" |
@@ -86,13 +104,19 @@ escdata <- escdata %>%
       TRUE ~ 0
     )),
     vaso_norepi_epi_vasopress = ynfac(case_when(
+      all_vaso_na ~ NA_real_,
       ITVASNOR == "Yes" |
         ITVASEPI == "Yes" |
         ITVASVAS == "Yes" |
         ITVASOTH == "Yes" ~ 1,
       TRUE ~ 0
     )),
-    OPCPRO = str_to_title(OPCPRO), 
+    OPCPRO = str_to_title(OPCPRO),
+    OPCPRO_cat = factor(case_when(
+      is.na(OPCPRO) ~ NA_real_,
+      OPCPRO %in% c("Warm/Wet", "Cold/Wet") ~ 1,
+      TRUE ~ 0
+    ), levels = c(1, 0), labels = c("Wet", "Dry")),
     death_baseline_C_fac = ynfac(death_baseline_C),
     death = factor(case_when(
       is.na(death_baseline_C) ~ NA_real_,

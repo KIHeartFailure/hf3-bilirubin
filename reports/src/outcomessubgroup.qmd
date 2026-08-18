@@ -211,10 +211,10 @@ outcomessubfunc <- function(event, time = NULL, model) {
       plot.title = element_text(hjust = 0.5),
       panel.grid.major.y = element_line(colour = "grey94")
     ) +
-    scale_x_continuous(trans = "log", breaks = c(0.3, 0.5, 1, 2, 3, 4), limits = c(.3, 4)) +
+    scale_x_continuous(trans = "log", breaks = c(0.3, 0.5, 1, 2, 3, 4, 5), limits = c(.3, 5)) +
     scale_y_continuous(breaks = subplot$order, labels = subplot$pop) +
     labs(x = xname) +
-    ggtitle("Bilirubin >1.0 mg/dL\nless harmfull - more harmfull")
+    ggtitle("Bilirubin >1.2 mg/dL\nless harmfull - more harmfull")
 
   t <- ggplot(subplot) +
     geom_text(aes(y = order, x = 1, label = estci), size = size_use / .pt, fontface = "bold") +

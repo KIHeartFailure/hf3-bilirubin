@@ -1,0 +1,125 @@
+```{r}
+#| label: eftabfunc
+#| cache: true
+#| cache.comments: false
+
+eftabfunc <- function(colvar) {
+  tab <- tmpdata %>%
+    filter(!is.na(!!sym(colvar))) %>%
+    group_by(ef_cat, !!sym(colvar)) %>%
+    reframe(
+      med = quantile(Bili_mgdL, na.rm = T, probs = c(0.5)),
+      q1 = quantile(Bili_mgdL, na.rm = T, probs = c(0.25)),
+      q3 = quantile(Bili_mgdL, na.rm = T, probs = c(0.75)),
+      n = n()
+    ) %>%
+    mutate(
+      out = paste0(fn(med, 1), " [", fn(q1, 1), "-", fn(q3, 1), "]"),
+      out = case_when(
+        n == 0 ~ "-",
+        n < 10 ~ "<10",
+        TRUE ~ out
+      )
+    ) %>%
+    ungroup() %>%
+    group_by(ef_cat) %>%
+    mutate(np = if_else(n >= 10, paste0(n, " (", fn(n / sum(n) * 100), ")"), "<10")) %>%
+    select(ef_cat, !!sym(colvar), np, out) %>%
+    pivot_wider(names_from = ef_cat, values_from = c(np, out)) %>%
+    rename(level = !!sym(colvar)) %>%
+    mutate(var = NA) %>%
+    add_row(
+      var = colvar,
+      .before = 1
+    )
+}
+```
+
+```{r}
+#| label: tbl-ef-clinicalprofile
+#| cache: true
+#| cache.comments: false
+#| dependson: eftabfunc
+#| tbl-cap: "EF and clinical profile"
+#| tbl-pos: "H"
+
+tmpdata <- bind_rows(
+  escdata %>% mutate(ef_cat = "Overall"),
+  escdata %>% arrange(ef_cat)
+) %>%
+  mutate(
+    ef_cat = fct_inorder(ef_cat),
+    OPCPRO_cat2 = factor(case_when(
+      is.na(OPCPRO) ~ NA_real_,
+      OPCPRO %in% c("Cold/Dry", "Cold/Wet") ~ 1,
+      TRUE ~ 0
+    ), levels = c(1, 0), labels = c("Cold", "Warm")),
+    OPBP1_cat2 = factor(case_when(
+      is.na(OPBP1) ~ NA_real_,
+      OPBP1 < 90 ~ 1,
+      OPBP1 >= 90 ~ 0
+    ), levels = c(1, 0), labels = c("<90", ">=90")),
+    OPCPRO_OPBP1 = factor(case_when(
+      is.na(OPCPRO_cat2) | is.na(OPBP1_cat2) ~ NA_real_,
+      OPCPRO_cat2 == "Cold" & OPBP1_cat2 == "<90" ~ 1,
+      TRUE ~ 0
+    ), levels = c(1, 0), labels = c("Cold and <90", "Warm or >=90")),
+    ef_cat2 = factor(case_when(
+      is.na(ef) ~ NA_real_,
+      ef <= 20 ~ 1,
+      ef > 20 ~ 0
+    ), levels = c(1, 0), labels = c("<=20", ">20"))
+  )
+
+tabtmp <- lapply(c("OPCPRO_cat2", "OPBP1_cat2", "OPCPRO_OPBP1", "ef_cat2", "OPRVF", "vaso_any", "ITSTMEC"),
+  FUN = eftabfunc
+)
+
+tab <- bind_rows(tabtmp) %>%
+  mutate(
+    # if recoding or categorizing will still get org label
+    var_tmp = str_replace_all(var, "(_cat2|_cat)", "")
+  )
+
+tab <- left_join(tab,
+  metaesc,
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(level) & !is.na(Variable),
+      paste0(Variable, " ", level),
+      coalesce(Variable, paste0("  ", level))
+    )
+  ) %>%
+  select(Variable, np_Overall, out_Overall, `np_AHF-ref`, `out_AHF-ref`, `np_AHF-mref`, `out_AHF-mref`, `np_AHF-pef`, `out_AHF-pef`)
+
+cn <- c("", rep(c("N (%)", "Bilirubin (mg/dL) median [q1-q3]"), 4))
+
+if (output) {
+  make_one_xlsxsheet(tab, colnames = cn)
+}
+
+tab <- tab %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable)
+  )
+
+indent_rows <- tab %>%
+  mutate(
+    indent_rows = str_detect(Variable, "  "),
+    rows = row_number()
+  ) %>%
+  filter(indent_rows) %>%
+  pull(rows)
+
+cn <- sanitize_text(cn)
+
+default_kable(tab,
+  escape = FALSE,
+  col.names = cn
+) %>%
+  add_indent(indent_rows) %>%
+  add_header_above(c(" " = 1, "Overall" = 2, "AHF-ref" = 2, "AHF-mref" = 2, "AHF-pef" = 2))
+```

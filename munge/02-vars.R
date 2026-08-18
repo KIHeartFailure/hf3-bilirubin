@@ -27,6 +27,7 @@ tabvars <- c(
   "OPBP2",
   "OPHR",
   "OPCPRO",
+  "OPCPRO_cat",
   "OPPULRA",
   "OPPULOE",
   "OPDYSP",
@@ -74,11 +75,14 @@ modvars <- c(
   "ns(OPBP1, df = 4)",
   "ns(Hb_gdL, df = 4)",
   "ns(CKDEPI, df = 4)",
-  "BNP_NT_cat"
+  "BNP_NT_cat",
+  "OPNYHA",
+  "OPCPRO_cat"
 )
 
 impvars <- c(
   "OPNYHA",
+  "OPCPRO_cat",
   "DMAGE",
   "DMSEX",
   "BMI",

@@ -21,7 +21,7 @@ scatter <- function(var, name, ylim = NULL) {
   rprint <- paste0("r, p-value: ", fn(r$estimate, 2), ", ", fn(r$p.value, 3, p = T))
   p <- ggplot(escdata, aes(x = Bili_mgdL, y = !!sym(var))) +
     # geom_hline(yintercept = 0, linetype = "dashed", color = "darkgrey", linewidth = 0.7) +
-    geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
+    geom_vline(xintercept = 1.2, linetype = 2, color = "black", linewidth = 0.75) +
     geom_point(color = global_cols[1]) +
     geom_smooth(color = global_cols[2], method = "loess", fill = global_cols[2]) +
     theme_classic() +

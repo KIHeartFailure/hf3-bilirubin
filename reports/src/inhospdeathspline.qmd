@@ -34,7 +34,7 @@ if (!is.null(ylims) & !is.null(xlims)) {
 }
 
 p <- ggplot(plotdata, aes(x = x, y = or)) +
-  geom_vline(xintercept = 1, linetype = 2, color = "black", linewidth = 0.75) +
+  geom_vline(xintercept = 1.2, linetype = 2, color = "black", linewidth = 0.75) +
   geom_line(linewidth = 1.5, color = global_cols[1]) +
   geom_ribbon(aes(ymin = lci, ymax = uci), fill = global_cols[1], alpha = 0.3, linetype = 0) +
   geom_rug(sides = "b") +

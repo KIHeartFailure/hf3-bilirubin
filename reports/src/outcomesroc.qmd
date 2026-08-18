@@ -1,0 +1,13 @@
+```{r}
+#| label: outcomesroc
+#| cache: true
+#| cache.comments: false
+
+roc_obj <- roc(response = escdata$death_baseline_C, predictor = escdata$Bili_mgdL, quiet = T)
+# Find the optimal cut-off using Youden's J statistic (Sensitivity + Specificity - 1)
+cutoff_deathinhosp <- fn(coords(roc_obj, x = "best", ret = "threshold", best.method = "youden")[[1]], 2)
+
+roc_obj <- roc(response = escdata$death_fup, predictor = escdata$Bili_mgdL, quiet = T)
+# Find the optimal cut-off using Youden's J statistic (Sensitivity + Specificity - 1)
+cutoff_deathfu <- fn(coords(roc_obj, x = "best", ret = "threshold", best.method = "youden")[[1]], 2)
+```
