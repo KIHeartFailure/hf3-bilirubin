@@ -10,18 +10,10 @@ flow <- flow %>%
   )
 
 escdata <- escdata %>%
-  filter(DMVTYPE == "Acute HF event requiring iv therapy or mechanical support")
+  filter(DMVTYPE == "AHF")
 flow <- flow %>%
   add_row(
     Criteria = "Exclude CHF",
-    N = nrow(escdata)
-  )
-
-escdata <- escdata %>%
-  filter(!is.na(OPTBIL))
-flow <- flow %>%
-  add_row(
-    Criteria = "Exclude bilirubin missing",
     N = nrow(escdata)
   )
 

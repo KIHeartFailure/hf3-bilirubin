@@ -2,8 +2,14 @@
 #| label: fig-bilirubin
 #| fig-cap: "Bilirubin"
 
-plotdata <- bind_rows(escdata %>% mutate(ef_cat = "Overall"), escdata %>% arrange(ef_cat)) %>%
+plotdata <- bind_rows(
+  escdata %>% mutate(ef_cat = "Overall"),
+  escdata %>% arrange(ef_cat) %>%
+    mutate(ef_cat = paste0("AHF-EF (%) ", ef_cat))
+) %>%
   mutate(
+    ef_cat = str_replace_all(ef_cat, "<=", "\u2264"),
+    ef_cat = str_replace_all(ef_cat, ">=", "\u2265"),
     ef_cat = fct_inorder(ef_cat),
     ef_catnum = as.numeric(ef_cat)
   )

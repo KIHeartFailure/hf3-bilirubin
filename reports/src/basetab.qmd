@@ -3,7 +3,7 @@
 #| cache: true
 #| cache.comments: false
 
-basetabfunc_inner <- function(x, data, stratavar, catdig, contdig) {
+basetabfunc <- function(x, data, stratavar, catdig, contdig) {
   pmis <- data %>%
     filter(!is.na(!!sym(stratavar))) %>%
     mutate(mis = factor(if_else(is.na(!!sym(x)), 1, 0), levels = 0:1)) %>%
@@ -13,12 +13,7 @@ basetabfunc_inner <- function(x, data, stratavar, catdig, contdig) {
     pull(pmis)
 
   tmp <- data %>%
-    filter(!is.na(!!sym(x)) & !is.na(!!sym(stratavar)) & !!sym(x) != "No/missing medication")
-
-  if (str_detect(x, "_tg")) {
-    tmp <- tmp %>%
-      mutate(!!sym(x) := droplevels(!!sym(x)))
-  }
+    filter(!is.na(!!sym(x)) & !is.na(!!sym(stratavar)))
 
   cl <- class(data %>% pull(!!sym(x)))
   if (cl %in% c("character", "factor")) {
@@ -156,6 +151,55 @@ basetabfunc_inner <- function(x, data, stratavar, catdig, contdig) {
     stop("Unknown class in baseline table")
   }
 }
+
+incfunc <- function(x, data, stratavar) {
+  pmis <- data %>%
+    filter(!is.na(!!sym(stratavar))) %>%
+    mutate(mis = factor(if_else(is.na(!!sym(x)), 1, 0), levels = 0:1)) %>%
+    count(mis, .drop = F) %>%
+    mutate(pmis = fn(n / sum(n) * 100, 0)) %>%
+    filter(mis == "1") %>%
+    pull(pmis)
+
+  tmp <- data %>%
+    filter(!is.na(!!sym(x)) & !is.na(!!sym(stratavar)))
+
+  cl <- class(data %>% pull(!!sym(x)))
+  if (cl %in% c("character", "factor")) {
+    ev <- tmp %>%
+      group_by(!!sym(stratavar)) %>%
+      summarise(
+        ev = sum(!!sym(x) == "Yes"),
+        s = sum(time_death_fu / 365.25),
+        .groups = "drop"
+      )
+  } else {
+    ev <- tmp %>%
+      group_by(!!sym(stratavar)) %>%
+      summarise(
+        ev = sum(!!sym(x)),
+        s = sum(time_death_fu / 365.25),
+        .groups = "drop"
+      ) %>%
+      ungroup()
+  }
+  ev <- ev %>%
+    mutate(inc = fn(ev / (s / 100), 0))
+  test <- poisson.test(ev$ev, ev$s / 100)
+
+  p <- fn(test$p.value, p = T, dig = 3)
+
+  out <- ev %>%
+    select(!!sym(stratavar), inc) %>%
+    pivot_wider(names_from = !!sym(stratavar), values_from = inc)
+
+  out <- out %>%
+    mutate(
+      var = x,
+      p = p,
+      pmis = pmis
+    )
+}
 ```
 
 ```{r}
@@ -186,7 +230,7 @@ tab <- escdata %>%
   select(var, level, pmis, Overall, levels(escdata %>% pull(Bili_mgdL_cat)), p)
 
 tabtmp <- sapply(tabvars,
-  FUN = basetabfunc_inner, data = escdata,
+  FUN = basetabfunc, data = escdata,
   stratavar = "Bili_mgdL_cat", catdig = catdig, contdig = contdig
 )
 
@@ -205,6 +249,10 @@ tab <- left_join(tab,
 ) %>%
   mutate(
     Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
     Variable = if_else(!is.na(level) & !is.na(Variable),
       paste0(Variable, " ", level),
       coalesce(Variable, paste0("  ", level))
@@ -235,7 +283,6 @@ tab_xls <- tab %>%
   add_row(Variable = "") %>%
   add_row(Variable = paste0("a ", footnotetext[1])) %>%
   add_row(Variable = paste0("b ", footnotetext[2]))
-
 
 levs <- levels(escdata %>% pull(Bili_mgdL_cat))
 cn <- c("Variable", "Missing (%)", "Overall", levs, "p-value")
@@ -280,6 +327,116 @@ default_kable(tab,
       "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test."
     ),
     alphabet = footnotetext,
+    threeparttable = T
+  )
+```
+
+
+```{r}
+#| label: tbl-base-exclude
+#| cache: true
+#| cache.comments: false
+#| dependson: basetabfunc
+#| tbl-cap: "Baseline characteristics - Patients included vs excluded due to missing Bilirubin"
+#| tbl-pos: "H"
+
+contdig <- 1
+catdig <- 0
+
+tab <- escdata_misbil %>%
+  count(misbil, .drop = F) %>%
+  mutate(
+    Overall = sum(n),
+    n = paste0(n, " (", fn(n / Overall * 100, catdig), ")")
+  ) %>%
+  pivot_wider(names_from = misbil, values_from = n) %>%
+  mutate(
+    var = "N (%)",
+    level = NA,
+    p = NA,
+    pmis = NA
+  ) %>%
+  select(var, level, pmis, levels(escdata_misbil %>% pull(misbil)), p)
+
+tabtmp <- sapply(c(setdiff(tabvars, "BNP_NT_cat"), "death_inhosp"),
+  FUN = basetabfunc, data = escdata_misbil,
+  stratavar = "misbil", catdig = catdig, contdig = contdig
+)
+
+tabtmp <- bind_rows(tabtmp) %>% select(-Overall)
+
+inctmp <- lapply(c("death_fu", "cvdhfh_fu"),
+  FUN = incfunc, data = escdata_misbil,
+  stratavar = "misbil"
+)
+inctmp <- bind_rows(inctmp)
+
+tab <- bind_rows(tab, tabtmp, inctmp)
+
+tab <- tab %>%
+  mutate(
+    # if recoding or categorizing will still get org label
+    var_tmp = str_replace_all(var, "(_cat2|_cat)", "")
+  )
+
+tab <- left_join(tab,
+  metaesc,
+  by = c("var_tmp" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
+    Variable = if_else(!is.na(level) & !is.na(Variable),
+      paste0(Variable, " ", level),
+      coalesce(Variable, paste0("  ", level))
+    )
+  )
+
+levs <- levels(escdata_misbil %>% pull(misbil))
+cn <- c("Variable", "Missing (%)", levs, "p-value")
+
+# excel
+if (output) {
+  make_one_xlsxsheet(tab %>% select(Variable, pmis:p), colnames = cn)
+}
+
+# footnotes
+tab <- tab %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
+    Variable = str_replace_all(Variable, fixed("²"), "\\textsuperscript{2}"),
+    Variable = str_replace_all(Variable, fixed("$>$="), "$\\geq$"),
+    Variable = str_replace_all(Variable, fixed("$<$="), "$\\leq$")
+  ) %>%
+  select(Variable, pmis:p)
+
+indent_rows <- tab %>%
+  mutate(
+    indent_rows = str_detect(Variable, "  "),
+    rows = row_number()
+  ) %>%
+  filter(indent_rows) %>%
+  pull(rows)
+
+cn <- sanitize_text(cn)
+
+default_kable(tab,
+  font_size = 5.5,
+  longtable = TRUE,
+  escape = FALSE,
+  col.names = cn
+) %>%
+  add_indent(indent_rows) %>%
+  footnote(
+    footnote_order = c("general", "symbol", "alphabet"),
+    general_title = "",
+    general = c(
+      "Categorical variables are presented with n (%) and tested with chi-square test, continuous variables are presented with median [q1-q3] and tested with Kruskal-Wallis test and long-term outcomes are presented with incidence rate and tested with Poisson test."
+    ),
     threeparttable = T
   )
 ```

@@ -3,18 +3,17 @@
 #| cache: true
 #| cache.comments: false
 
-size_use <- 16
-
-outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
+outcomessubfunc_inner <- function(event, time, intvar, intvarname, model, novars = NULL) {
   levsint <- levels(escdata %>% pull(!!sym(intvar)))
   nlevsint <- length(levsint)
-  modvarstmp <- setdiff(modvars, intvar)
+  modvarstmp <- setdiff(modvars, c(novars, intvar))
   out <- tibble(
     pop = NA_character_,
     est = NA_real_,
     se = NA_real_,
     p = NA_real_,
-    pint = NA_real_, .rows = (nlevsint + 1)
+    pint = NA_real_,
+    .rows = (nlevsint + 1)
   )
 
   out[, 1] <- c(intvarname, paste0("  ", levsint))
@@ -25,7 +24,7 @@ outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
         impdata,
         glm(
           formula(paste0(
-            event, "~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
+            event, " == 'Yes' ~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
             paste0(modvarstmp, collapse = " + ")
           )),
           family = binomial(link = "logit")
@@ -45,7 +44,7 @@ outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
             impdata,
             glm(
               formula(paste0(
-                event, "~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
+                event, " == 'Yes'~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
                 paste0(modvarstmp, collapse = " + ")
               )),
               family = binomial(link = "logit")
@@ -83,7 +82,7 @@ outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
     }
     if (model == "cox") {
       modraw <- with(impdata, coxph(formula(paste0(
-        "Surv(", time, ",", event, ") ~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
+        "Surv(", time, ",", event, "== 'Yes') ~ Bili_mgdL_cat * relevel(", intvar, ", ref = '", levsint[i], "') + ",
         paste0(modvarstmp, collapse = " + ")
       ))))
 
@@ -98,7 +97,7 @@ outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
           out[1, 5] <- last(mod$p.value)
         } else {
           mod_noint <- with(impdata, coxph(formula(paste0(
-            "Surv(", time, ",", event, ") ~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
+            "Surv(", time, ",", event, "== 'Yes') ~ Bili_mgdL_cat + relevel(", intvar, ", ref = '", levsint[i], "') + ",
             paste0(modvarstmp, collapse = " + ")
           ))))
 
@@ -110,13 +109,13 @@ outcomessubfunc_inner <- function(event, time, intvar, intvarname, model) {
   }
   return(out)
 }
-outcomessubfunc <- function(event, time = NULL, model) {
+outcomessubfunc <- function(event, time = NULL, model, xbreaks = c(0.3, 0.5, 1, 2, 3, 4, 5)) {
   if (model == "log") {
     mod <- with(
       impdata,
       glm(
         formula(paste0(
-          event, "~ Bili_mgdL_cat + ",
+          event, " == 'Yes' ~ Bili_mgdL_cat + ",
           paste0(modvars, collapse = " + ")
         )),
         family = binomial(link = "logit")
@@ -134,7 +133,7 @@ outcomessubfunc <- function(event, time = NULL, model) {
 
   if (model == "cox") {
     mod <- with(impdata, coxph(formula(paste0(
-      "Surv(", time, ",", event, ") ~ Bili_mgdL_cat + ", paste0(modvars, collapse = " + ")
+      "Surv(", time, ",", event, " == 'Yes') ~ Bili_mgdL_cat + ", paste0(modvars, collapse = " + ")
     ))))
 
     rownr <- 1
@@ -152,7 +151,7 @@ outcomessubfunc <- function(event, time = NULL, model) {
 
   outcomessub <- outcomessubfunc_inner(
     event = event, time = time, intvar = "ef_cat",
-    intvarname = "EF (%)", model = model
+    intvarname = "LVEF (%)", model = model
   )
   outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
     event = event, time = time, intvar = "DMSEX",
@@ -160,137 +159,104 @@ outcomessubfunc <- function(event, time = NULL, model) {
   ))
   outcomessub <- bind_rows(outcomessub, outcomessubfunc_inner(
     event = event, time = time, intvar = "DMAGE_cat",
-    intvarname = "Age (years)", model = model
+    intvarname = "Age (years)", model = model, novars = "ns(DMAGE, df = 4)"
   ))
   out <- bind_rows(out, outcomessub)
-
-  subplot <- out %>%
-    mutate(
-      order = n():1,
-      lci = est - global_z05 * se,
-      uci = est + global_z05 * se,
-      cols = factor(case_when(p >= 0.05 ~ 2, est >= 0 ~ 3, est < 0 ~ 1)),
-      estci = if_else(!is.na(est), paste0(
-        fn(exp(est), 2), " (",
-        fn(exp(lci), 2), "-",
-        fn(exp(uci), 2), ")"
-      ), NA),
-      pint = if_else(is.na(pint), NA, fn(pint, dig = 3, p = TRUE)),
-      pop = str_replace_all(pop, "<=", "\u2264")
-    )
 
   # plot it
 
   if (model == "log") {
-    estname <- "Odds Ratio"
+    estname <- "OR"
   }
   if (model == "cox") {
-    estname <- "Hazard Ratio"
+    estname <- "HR"
   }
   if (model == "nb") {
-    estname <- "Rate Ratio"
+    estname <- "RR"
   }
-  xname <- paste0("Adjusted ", estname, " (95% CI)")
-  xname2 <- paste0(estname, "\n(95% CI)")
+  xname <- paste0("Adjusted ", estname, "\n(95% CI)")
 
-  p <- ggplot(subplot, aes(x = exp(est), y = order, color = cols)) +
-    # Add a reference dashed line at 1
-    geom_vline(xintercept = 1, linetype = "dashed", color = "darkgrey", linewidth = 0.6) +
-    # Add dot plot and error bars
-    geom_errorbar(aes(xmin = exp(lci), xmax = exp(uci)), width = 0.45, linewidth = 0.8) +
-    geom_point(size = 3, shape = 15) +
-    scale_color_manual(values = global_cols[c(2, 3, 4)]) +
-    theme_classic() +
-    theme(
-      text = element_text(size = size_use, face = "bold"),
-      legend.position = "none",
-      axis.ticks.y = element_blank(),
-      axis.title.y = element_blank(),
-      axis.text.y = element_text(color = "black", hjust = 0, size = size_use),
-      axis.line.y = element_line(colour = "white"),
-      plot.title = element_text(hjust = 0.5),
-      panel.grid.major.y = element_line(colour = "grey94")
-    ) +
-    scale_x_continuous(trans = "log", breaks = c(0.3, 0.5, 1, 2, 3, 4, 5), limits = c(.3, 5)) +
-    scale_y_continuous(breaks = subplot$order, labels = subplot$pop) +
-    labs(x = xname) +
-    ggtitle("Bilirubin >1.2 mg/dL\nless harmfull - more harmfull")
+  subplot <- out %>%
+    mutate(
+      order = 1:n(),
+      lci = exp(est - global_z05 * se),
+      uci = exp(est + global_z05 * se),
+      est = exp(est),
+      cols = factor(case_when(p >= 0.05 ~ 2, est >= 0 ~ 3, est < 0 ~ 1)),
+      estci = if_else(!is.na(est), paste0(
+        fn(est, 2), " (",
+        fn(lci, 2), "-",
+        fn(uci, 2), ")"
+      ), ""),
+      `P-value\ninteraction` = if_else(is.na(pint), "", fn(pint, dig = 3, p = TRUE)),
+      pop = str_replace_all(pop, "<=", "\u2264"),
+      pop = str_replace_all(pop, ">=", "\u2265")
+    ) %>%
+    rename(!!sym(xname) := estci)
 
-  t <- ggplot(subplot) +
-    geom_text(aes(y = order, x = 1, label = estci), size = size_use / .pt, fontface = "bold") +
-    ggtitle(xname2) +
-    xlab("  ") +
-    theme_classic() +
-    theme(
-      text = element_text(size = size_use, face = "bold"),
-      axis.line.y = element_blank(),
-      axis.line.x = element_line(color = "white"),
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.ticks.x = element_line(color = "white"),
-      axis.title.y = element_blank(),
-      axis.text.x = element_text(color = "white"),
-      plot.title = element_text(hjust = 0.5)
+  subplot$` ` <- paste(rep(" ", nrow(subplot)), collapse = " ")
+  colnames(subplot)[1] <- "  "
+
+  tm <- forest_theme(
+    core = list(bg_params = list(fill = c("#F0F0F0", "white"))),
+    base_size = 11,
+    refline_gp = gpar(lty = "solid"),
+    ci_col = global_cols[1],
+    ci_lwd = 2.5,
+    arrow_length = 0.08,
+    colhead = list(
+      fg_params = list(hjust = 0.5, x = 0.5) # Centers header text
     )
+  )
 
-  pint <- ggplot(subplot) +
-    geom_text(aes(y = order, x = 1, label = pint), size = size_use / .pt, fontface = "bold") +
-    ggtitle("P-value\ninteraction") +
-    xlab("  ") +
-    theme_classic() +
-    theme(
-      text = element_text(size = size_use, face = "bold"),
-      axis.line.y = element_blank(),
-      axis.line.x = element_line(color = "white"),
-      axis.text.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      axis.ticks.x = element_line(color = "white"),
-      axis.title.y = element_blank(),
-      axis.text.x = element_text(color = "white"),
-      plot.title = element_text(hjust = 0.5)
-    )
+  # Draw the forest plot with rearranged columns
+  p <- forest(subplot[, c(1, 12, 10, 11)],
+    est = subplot$est,
+    lower = subplot$lci,
+    upper = subplot$uci,
+    ci_column = 2,
+    sizes = 1.25,
+    # nudge_y = 0.35,
+    x_trans = "log",
+    arrow_lab = c("High TBili less harmfull", "High TBili more harmfull"),
+    xlim = c(min(xbreaks), max(xbreaks)),
+    ticks_at = xbreaks,
+    theme = tm
+  )
+  p <- edit_plot(p,
+    col = c(3, 4),
+    which = "text",
+    hjust = unit(0.5, "npc"),
+    x = unit(0.5, "npc"),
+  )
 
-  pall <- p + t + pint + plot_layout(ncol = 3, widths = c(3.5, 1, 0.75))
+  p <- edit_plot(p,
+    row = subplot %>% filter(cols == 2) %>% pull(order), col = 2, which = "ci",
+    gp = gpar(col = global_cols[2], fill = global_cols[2])
+  )
 
-  if (output) {
-    create_pptx(pall, width = 10, height = 6)
-  }
-  pall
+  create_pptx(p, width = 4, height = 4)
+  p
 }
 ```
 
 ```{r}
-#| label: fig-outcomes-subgroup-inhospdeath
+#| label: fig-outcomes-subgroup
 #| cache: true
 #| cache.comments: false
 #| dependson: outcomessubfunc
-#| fig-cap: "In-hospital death"
-#| fig-width: 10
-#| fig-height: 6
+#| fig-cap: Association between bilirubin and outcomes in overall and in subgroups (adjusted)
+#| fig-subcap:
+#| - In-hospital death
+#| - CVD/HFH at 12 months
+#| - All-cause death at 12 months
+#| fig-width: 5
+#| fig-height: 5
+#| layout-ncol: 2
+#| layout-nrow: 2
 
-outcomessubfunc(event = "death_baseline_C", model = "log")
-```
 
-```{r}
-#| label: fig-outcomes-subgroup-fucvdhfh
-#| cache: true
-#| cache.comments: false
-#| dependson: outcomessubfunc
-#| fig-cap: "FU CVD/HFH"
-#| fig-width: 10
-#| fig-height: 6
-
-outcomessubfunc(event = "cvdhfh", time = "time_death_fup", model = "nb")
-```
-
-```{r}
-#| label: fig-outcomes-subgroup-fudeath
-#| cache: true
-#| cache.comments: false
-#| dependson: outcomessubfunc
-#| fig-cap: "FU All-cause death"
-#| fig-width: 10
-#| fig-height: 6
-
-outcomessubfunc(event = "death_fup", time = "time_death_fup", model = "cox")
+outcomessubfunc(event = "death_inhosp", model = "log", xbreaks = c(0.3, 1, 5))
+outcomessubfunc(event = "cvdhfh_fu", time = "time_death_fu", model = "nb", xbreaks = c(0.4, 1, 2))
+outcomessubfunc(event = "death_fu", time = "time_death_fu", model = "cox", xbreaks = c(0.3, 1, 3))
 ```

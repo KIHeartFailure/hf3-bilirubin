@@ -2,17 +2,19 @@
 
 source(here::here("setup/setup.R"))
 
+# Load data ---------------------------------------------------------------
+
+load("P:/k2_stat_heartfailure/Projects/20261005_HF3/data/clean-data/v001/escdata001.RData")
+
 # Munge data --------------------------------------------------------------
 
-source(here("munge/01-load-data.R"))
-source(here("munge/02-vars.R"))
-source(here("munge/03-pop-selection.R"))
-source(here("munge/04-fix-vars.R"))
+source(here("munge/01-vars.R"))
+source(here("munge/02-pop-selection-1.R"))
+source(here("munge/03-fix-vars.R"))
+source(here("munge/04-pop-selection-2.R"))
 source(here("munge/05-imputation.R"))
 
 # Cache/save data ---------------------------------------------------------
-
-metaesc <- read.xlsx("./data/meta-data/metavars.xlsx")
 
 save(
   file = here("data/clean-data/escdata.RData"),
@@ -22,9 +24,9 @@ save(
     "tabvars",
     "modvars",
     "impvars",
-    "esclab",
     "metaesc",
-    "impdata"
+    "impdata",
+    "escdata_misbil"
   )
 )
 

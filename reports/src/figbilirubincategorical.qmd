@@ -4,20 +4,20 @@
 #| cache: true
 #| cache.comments: false
 #| fig-subcap:
-#| - Mitral regurg
-#| - Tricuspid regurg
+#| - Mitral regurgitation
+#| - Tricuspid regurgitation
 #| - RV function
-#| - TAPSE > vs <= median
-#| - Inf vena cava resp dimension
-#| - Inf vena cava resp variation
+#| - TAPSE (mm)
+#| - Inferior vena cava dimension
+#| - Inferior vena cava respiratory variation
 #| - Hepatic dysfunction
-#| - Pulm rales
-#| - Periph edema
+#| - Pulmonary rales
+#| - Peripheral oedema
 #| - Dyspnea at rest
-#| - Otrhopnea
-#| - Jug ven pulse
+#| - Orthopnea
+#| - Jugular Venous Pulse
 #| - NYHA class
-#| - Clinical profile
+#| - Clinical Profiles
 #| layout-ncol: 4
 #| layout-nrow: 4
 
@@ -58,7 +58,7 @@ boxfunc <- function(var, name) {
     geom_text(
       data = meddata,
       aes(x = 1:nlevs, y = 5.2, label = med),
-      size = 5.5,
+      size = 7,
       color = rep(global_cols[1:nlevs]),
       fontface = "bold",
       check_overlap = F

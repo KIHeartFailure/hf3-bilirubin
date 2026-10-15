@@ -7,7 +7,7 @@ if (cores_2_use >= 20) {
 }
 
 escdataimp <- escdata %>%
-  select(!!!syms(impvars), death_baseline_C, time_death_fup, death_fup, cvdhfh, Bili_mgdL_cat)
+  select(!!!syms(impvars), death_inhosp, time_death_fu, death_fu, cvdhfh_fu, Bili_mgdL_cat)
 
 noimpvars <- names(escdataimp)[!names(escdataimp) %in% impvars]
 

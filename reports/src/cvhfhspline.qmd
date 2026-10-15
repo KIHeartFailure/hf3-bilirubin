@@ -4,8 +4,8 @@
 #| cache: true
 #| cache.comments: false
 #| fig-subcap:
-#| - FU CVD/HFH
-#| - FU All-cause death
+#| - CVD/HFH at 12 months
+#| - All-cause death at 12 months
 #| layout-ncol: 2
 #| layout-nrow: 1
 
@@ -13,7 +13,7 @@ splinefunc <- function(outvar, outtime, outname, mod, ylims = NULL) {
   if (mod == "cox") {
     modmy <- coxph(
       formula(paste0(
-        "Surv(", outtime, ",", outvar, ") ~ ns(Bili_mgdL, df = 4)"
+        "Surv(", outtime, ",", outvar, "== 'Yes') ~ ns(Bili_mgdL, df = 4)"
       )),
       data = escdata
     )
@@ -26,13 +26,9 @@ splinefunc <- function(outvar, outtime, outname, mod, ylims = NULL) {
 
   tp <- termplot(modmy, se = TRUE, plot = F, terms = 1)
 
-  # OR = 1 at median https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf
-  # med <- quantile(data %>% pull(sos_timeprevhosphf), na.rm = T, p = 0.5)
-  # med <- 0 # use 0 days instead
-
   plotdata <- tp$Bili_mgdL
 
-  center <- with(plotdata, y[x == 1])
+  center <- with(plotdata, y[x == 1.2])
 
   xlims <- seq(0, 5, 1)
   if (is.null(ylims)) {
@@ -76,7 +72,7 @@ splinefunc <- function(outvar, outtime, outname, mod, ylims = NULL) {
         linewidth = 0.5,
         linetype = 2
       ),
-      text = element_text(size = 19, color = "black", face = "bold"),
+      text = element_text(size = 22, color = "black", face = "bold"),
       axis.text = element_text(color = "black")
     ) +
     labs(x = "Bilirubin (mg/dL)", y = yname) +
@@ -96,6 +92,7 @@ splinefunc <- function(outvar, outtime, outname, mod, ylims = NULL) {
   }
   p
 }
-splinefunc(outvar = "cvdhfh", outtime = "time_death_fup", "CVD/HFH", mod = "nb", ylims = c(0.4, .5, .7, 1, 1.5, 2, 2.5))
-splinefunc(outvar = "death_fup", "time_death_fup", outname = "Death", mod = "cox", ylims = c(0.4, .5, .7, 1, 1.5, 2, 2.5))
+
+splinefunc(outvar = "cvdhfh_fu", outtime = "time_death_fu", "CVD/HFH", mod = "nb", ylims = c(0.4, .6, 1, 1.5, 2, 2.5))
+splinefunc(outvar = "death_fu", "time_death_fu", outname = "Death", mod = "cox", ylims = c(0.4, .6, 1, 1.5, 2, 2.5))
 ```

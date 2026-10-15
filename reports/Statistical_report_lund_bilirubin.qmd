@@ -1,6 +1,5 @@
 ---
 title: "Statistical report: Comprehensive assessment of bilirubin in acute HFrEF, HFmrEF and HFpEF: associations with clinical characteristics, in-hospital course and outcomes, and 1-year cause-specific outcomes"
-subtitle: DRAFT
 date: "`r Sys.Date()`"
 cover: static/ki_logo_vert_rgb.png
 editor: source
@@ -60,7 +59,7 @@ sheets <- names(wb)
 # load pptx file with figs
 figs <- officer::read_pptx(path = here::here("output/figs/figs.pptx"))
 
-output <- FALSE
+output <- T
 ```           
 
 \newpage
@@ -78,7 +77,8 @@ ESC HF III
 #| tbl-cap: Information for flowchart
 #| tbl-pos: "H"
 
-default_kable(flow)
+default_kable(flow) %>%
+  add_indent(6)
 ```
 
 First patient in: `r min(escdata$BASEDT)` and last patient in: `r max(escdata$BASEDT)` 
@@ -122,9 +122,20 @@ Cox proportional hazards regression are used to model the time to death at appro
 
 Negative binomial regression are used to model the composite outcome of number of heart failure hospitalisations and cv deaths at approximately 1 year follow-up for patients discharged alive and available data where the log of follow-up time was included as an offset in the model.  
 
-Crude analyses were presented using natural cubic splines with 3 knots placed at the quantiles. Adjusted analyses were performed where adjustment was performed for variables indicated in @tbl-base, where the continuous variables (except for age) where modeled using natural cubic splines with 3 knots placed at the quantiles, and presented in Forest plots.
+The crude association between bilirubin and outcomes were presented graphically where bilirubin was modelled using a natural cubic spline with 3 knots placed at the quantiles and the reference set to 1.2. 
+
+The adjusted association between bilirubin as a categorical variable and outcomes were performed where adjustment was performed for variables indicated in @tbl-base, where the continuous variables where modeled using natural cubic splines with 3 knots placed at the quantiles, and presented in Forest plots.  
+
+In order to see if the results were consistent across subgroups an interaction effect between bilirubin and EF, sex and age respectively was included in the adjusted models. 
 
 The 1.2 cut-off for bilirubin was pre-specified and based on previous studies. However, we also explored the optimal cut-off for bilirubin using Youden's J statistic (Sensitivity + Specificity - 1) for the outcomes in-hospital death and death at approximately 1 year follow-up. 
+
+### Assumptions
+
+In the logistic regression multicollinearity was investigated using the Variance Inflation Factor and outliers were inspected using Cook's distance, both without cause for action. 
+
+In the cox regression model the proportional hazards assumption was investigated using the scaled Schoenfeld 
+residuals and possible outliers were visually inspected by plotting the dfbetas without cause for action. 
 
 \clearpage
 
@@ -186,9 +197,9 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 
 {{< include src/figbilirubincategorical.qmd >}}
 
-## Association between bilirubin and outcomes
-
 \clearpage
+
+## Association between bilirubin and outcomes
 
 {{< include src/inhospdeathspline.qmd >}}
 
@@ -210,9 +221,6 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 
 {{< include src/outcomesroc.qmd >}}
 
-Using Youden's J statistic the optimal cut-off for bilirubin with in-hospital death as outcome was `r cutoff_deathinhosp` 
-and for death during 1 year follow-up `r cutoff_deathfu`. 
-
 \clearpage
 
 # Reproducibility
@@ -220,7 +228,7 @@ and for death during 1 year follow-up `r cutoff_deathfu`.
 ## R code
 
 The R code for all data handling and statistical analyses are found: 
-
+  
 https://github.com/KIHeartFailure/hf3-bilirubin. On publication
 the repository will be made public so as to 
 link to it from the resulting article for increased transparency and code sharing.
@@ -236,3 +244,4 @@ sessionInfo()
 
 ::: {#refs}
 :::
+    

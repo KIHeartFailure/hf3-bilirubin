@@ -3,12 +3,12 @@
 #| fig-cap: "In-hospital outcomes vs bilirubin"
 #| fig-subcap:
 #| - In-hospital death
-#| - In hosp worsening HF
+#| - Worsening of HF
 #| - Vasoactive support any of dobuta dopa milri enox lev
 #| - Vasocative support any of norepi epi vasopress
-#| - Nitrates iv
-#| - Iv diuretics
-#| - Short term mech support
+#| - Nitrates IV
+#| - Diuretics IV
+#| - Short-term mechanical circulatory support
 #| cache: true
 #| cache.comments: false
 #| layout-ncol: 3
@@ -22,14 +22,13 @@ barplotfunc <- function(var, varname) {
     mutate(
       p = n / sum(n) * 100,
       pprint = fn(p, 0),
-      Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, "<=", "\u2264")),
-      var = fct_rev(fct_inorder(if_else(!!sym(var) == "Yes", varname, !!sym(var))))
+      Bili_mgdL_cat = fct_inorder(str_replace_all(Bili_mgdL_cat, "<=", "\u2264"))
     ) %>%
     ungroup()
 
-  p <- ggplot(plotdata, aes(y = p, x = Bili_mgdL_cat, fill = var)) +
-    geom_bar(position = "dodge", stat = "identity") +
-    scale_fill_manual(values = global_cols[c(1, 2)]) +
+  p <- ggplot(plotdata, aes(y = p, x = Bili_mgdL_cat, fill = !!sym(var))) +
+    geom_bar(stat = "identity", position = position_stack(reverse = TRUE)) +
+    scale_fill_manual(values = global_cols[c(2, 1)]) +
     theme_classic() +
     theme(
       panel.grid.major.y = element_line(
@@ -40,13 +39,13 @@ barplotfunc <- function(var, varname) {
       text = element_text(size = 22, face = "bold"),
       axis.text = element_text(color = "black"),
       legend.position = "bottom",
-      legend.title = element_blank(),
       axis.title.x = element_blank()
     ) +
-    labs(y = "Proportion (%)") +
+    guides(fill = guide_legend(title.position = "top", title.hjust = 0.5)) +
+    labs(y = "Proportion (%)", fill = varname) +
     # scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
     scale_y_continuous(limits = c(0, 100)) +
-    geom_text(aes(label = pprint), position = position_dodge(width = 0.9), vjust = -0.25, size = 6, fontface = "bold")
+    geom_text(aes(label = pprint), position = position_stack(vjust = 0.5, reverse = TRUE), size = 7, vjust = 0.5, fontface = "bold")
 
   if (output) {
     create_pptx(p)
@@ -54,7 +53,7 @@ barplotfunc <- function(var, varname) {
   p
 }
 
-barplotfunc(var = "death_baseline_C_fac", varname = "In-hospital death")
+barplotfunc(var = "death_inhosp", varname = "In-hospital death")
 barplotfunc(var = "DCWHF", varname = "Worsening of HF")
 barplotfunc("vaso_dobuta_dopa_milri_enox_lev", "Dobutamine/Dopamine/Milrinone/Enoximone/Levosimendan")
 barplotfunc("vaso_norepi_epi_vasopress", "Norepinephrine/Epinephrine/Vasopressin/Other")

@@ -2,7 +2,7 @@
 #| label: fig-inhospdeath
 #| fig-cap: "Association between in-hospital death and bilirubin (unadjusted)"
 
-mod <- glm(death_baseline_C ~ ns(Bili_mgdL, df = 4),
+mod <- glm(death_inhosp ~ ns(Bili_mgdL, df = 4),
   data = escdata, family = binomial(link = "logit"),
 )
 
@@ -12,10 +12,10 @@ tp <- termplot(mod, se = TRUE, plot = F, terms = 1)
 
 plotdata <- tp$Bili_mgdL
 
-center <- with(plotdata, y[x == 1])
+center <- with(plotdata, y[x == 1.2])
 
 xlims <- seq(0, 5, 1)
-ylims <- log(c(0.4, .5, .7, 1, 1.5, 2, 3, 4, 5))
+ylims <- log(c(0.4, .6, 1, 1.5, 2, 3, 5))
 
 plotdata <- plotdata %>%
   mutate(

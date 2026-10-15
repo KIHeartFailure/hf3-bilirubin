@@ -36,11 +36,11 @@ eftabfunc <- function(colvar) {
 ```
 
 ```{r}
-#| label: tbl-ef-clinicalprofile
+#| label: tbl-ef-clprof-hypoper
 #| cache: true
 #| cache.comments: false
 #| dependson: eftabfunc
-#| tbl-cap: "EF and clinical profile"
+#| tbl-cap: "EF and clinical profile/hypoperfusion"
 #| tbl-pos: "H"
 
 tmpdata <- bind_rows(
@@ -87,12 +87,16 @@ tab <- left_join(tab,
 ) %>%
   mutate(
     Variable = coalesce(label, var_tmp),
+    Variable = if_else(!is.na(unit),
+      paste0(Variable, " (", unit, ")"),
+      Variable
+    ),
     Variable = if_else(!is.na(level) & !is.na(Variable),
       paste0(Variable, " ", level),
       coalesce(Variable, paste0("  ", level))
     )
   ) %>%
-  select(Variable, np_Overall, out_Overall, `np_AHF-ref`, `out_AHF-ref`, `np_AHF-mref`, `out_AHF-mref`, `np_AHF-pef`, `out_AHF-pef`)
+  select(Variable, np_Overall, out_Overall, `np_<=40`, `out_<=40`, `np_41-49`, `out_41-49`, `np_>=50`, `out_>=50`)
 
 cn <- c("", rep(c("N (%)", "Bilirubin (mg/dL) median [q1-q3]"), 4))
 
@@ -121,5 +125,5 @@ default_kable(tab,
   col.names = cn
 ) %>%
   add_indent(indent_rows) %>%
-  add_header_above(c(" " = 1, "Overall" = 2, "AHF-ref" = 2, "AHF-mref" = 2, "AHF-pef" = 2))
+  add_header_above(c(" " = 1, "Overall" = 2, "AHF-EF (%) <=40" = 2, "AHF-EF (%) 41-49" = 2, "AHF-EF (%) >=50" = 2))
 ```

@@ -6,11 +6,12 @@ tabvars <- c(
   "DMHDYS",
   "ef_cat",
   "OPNYHA",
+  "OPNYHA_cat",
   "DMAGE",
   "DMSEX",
   "BMI",
-  "hfdur",
-  "PREV_HF_HOSPI",
+  "DMHFHIST_DUR",
+  "DMHFHOSP",
   "DMPUA_C",
   "DMAFIB",
   "DMDIAB_C",
@@ -33,13 +34,14 @@ tabvars <- c(
   "OPDYSP",
   "OPORTHO",
   "OPJVP",
-  "Hb_gdL",
-  "CKDEPI",
+  "OPHB",
+  "OPEGFR",
   "OPPOT",
   "OPSOD",
-  "BNP_pgmL",
-  "Nt_pgmL",
-  "Nt_pgmL_cat",
+  "OPALB",
+  "OPBNP",
+  "OPNT",
+  "OPNT_cat",
   "BNP_NT_cat",
   "OPTROPI",
   "OPTROPT",
@@ -59,12 +61,12 @@ tabvars <- c(
   "OPIVDIM",
   "OPINFVAR",
   "OPPAP",
-  "rasiarni",
+  "MDRASIARNIH",
   "MDARNIH_C",
   "MDBBH_C",
   "MDALH_C",
-  "SGLT2H_C",
-  "MDDNOGLH_C",
+  "MDSGLT2H",
+  "MDGLP1H",
   "MDDIURH_C"
 )
 
@@ -72,22 +74,30 @@ modvars <- c(
   "DMAGE",
   "DMSEX",
   "ef_cat",
-  "ns(OPBP1, df = 4)",
-  "ns(Hb_gdL, df = 4)",
-  "ns(CKDEPI, df = 4)",
+  "OPBP1",
+  "OPHB",
+  "OPEGFR",
   "BNP_NT_cat",
-  "OPNYHA",
+  "OPNYHA_cat",
   "OPCPRO_cat"
 )
+contvars <- c(
+  "DMAGE",
+  "OPBP1",
+  "OPHB",
+  "OPEGFR"
+)
+
+modvars[modvars %in% contvars] <- paste0("ns(", modvars[modvars %in% contvars], ", df = 4)")
 
 impvars <- c(
-  "OPNYHA",
+  "OPNYHA_cat",
   "OPCPRO_cat",
   "DMAGE",
   "DMSEX",
   "BMI",
-  "hfdur",
-  "PREV_HF_HOSPI",
+  "DMHFHIST_DUR",
+  "DMHFHOSP",
   "DMPUA_C",
   "DMDIAB_C",
   "IDICD",
@@ -98,16 +108,37 @@ impvars <- c(
   "ef_cat",
   "OPBP1",
   "OPHR",
-  "Hb_gdL",
-  "CKDEPI",
+  "OPHB",
+  "OPEGFR",
   "BNP_NT_cat",
-  "OPARYT",
-  "rasiarni",
+  "OPARYT_cat",
+  "MDRASIARNIH",
   "MDBBH_C",
   "MDALH_C",
-  "SGLT2H_C",
+  "MDSGLT2H",
   "MDDIURH_C"
 )
 
-tmp <- left_join(tibble(variable = tabvars), esclab, by = "variable")
-write.xlsx(tmp, "./data/meta-data/metavars_tmp.xlsx")
+
+metaesc <- bind_rows(
+  metaesc,
+  tibble(
+    variable = c(
+      "ef",
+      "BNP_NT",
+      "OPABD_congest",
+      "OPABD_pe",
+      "vaso_any",
+      "OPCPRO_OPBP1"
+    ),
+    label = c(
+      "LVEF",
+      "NT-proBNP/BNP",
+      "Chest X-ray: Pulmonary congestion or oedema",
+      "Chest X-ray: Pleural effusion",
+      "Vasoactive support",
+      "Clinical Profile/Systolic Blood pressure (mmHg)"
+    ),
+    unit = c("%", "pg/mL", rep(NA, 4))
+  )
+)
