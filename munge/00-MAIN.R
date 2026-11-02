@@ -4,7 +4,7 @@ source(here::here("setup/setup.R"))
 
 # Load data ---------------------------------------------------------------
 
-load("P:/k2_stat_heartfailure/Projects/20261005_HF3/data/clean-data/v001/escdata001.RData")
+load("P:/k2_stat_heartfailure/Projects/20261005_HF3/data/clean-data/v002/escdata002.RData")
 
 # Munge data --------------------------------------------------------------
 
@@ -25,7 +25,7 @@ save(
     "modvars",
     "impvars",
     "metaesc",
-    "impdata",
+    "impdata", 
     "escdata_misbil"
   )
 )
