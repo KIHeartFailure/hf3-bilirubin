@@ -4,7 +4,7 @@ source(here::here("setup/setup.R"))
 
 # Load data ---------------------------------------------------------------
 
-load("P:/k2_stat_heartfailure/Projects/20261005_HF3/data/clean-data/v002/escdata002.RData")
+load("P:/k2_stat_heartfailure/Projects/20261005_HF3/data/clean-data/v003/escdata003.RData")
 
 # Munge data --------------------------------------------------------------
 

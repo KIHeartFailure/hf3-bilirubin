@@ -1,0 +1,158 @@
+```{r}
+#| label: tbl-inhospout
+#| cache: true
+#| cache.comments: false
+#| tbl-cap: "In-hospital course and outcomes"
+#| tbl-pos: "H"
+
+outtabfunc <- function(x, data, stratavar, catdig) {
+  pmis <- data %>%
+    filter(!is.na(!!sym(stratavar))) %>%
+    mutate(mis = factor(if_else(is.na(!!sym(x)), 1, 0), levels = 0:1)) %>%
+    count(mis, .drop = F) %>%
+    mutate(pmis = fn(n / sum(n) * 100, catdig)) %>%
+    filter(mis == "1") %>%
+    pull(pmis)
+
+  tmp <- data %>%
+    filter(!is.na(!!sym(x)) & !is.na(!!sym(stratavar)))
+
+  cl <- class(data %>% pull(!!sym(x)))
+  if (cl %in% c("character", "factor")) {
+    out <- tmp %>%
+      group_by(!!sym(stratavar), .drop = F) %>%
+      count(!!sym(x), .drop = F) %>%
+      mutate(
+        out = paste0(n, " (", fn(n / sum(n) * 100, catdig), ")"),
+        out = case_when(
+          n == 0 ~ "-",
+          n < 10 ~ "<10",
+          TRUE ~ out
+        ),
+        level = !!sym(x)
+      ) %>%
+      ungroup() %>%
+      select(!!sym(stratavar), out, level) %>%
+      pivot_wider(names_from = !!sym(stratavar), values_from = out)
+
+    # p-value
+    check <- tmp %>%
+      count(!!sym(stratavar), !!sym(x))
+    if (nrow(check) >= 4) {
+      p <- fn(chisq.test(tmp %>% pull(!!sym(stratavar)), tmp %>% pull(!!sym(x)))$p.value, p = T, dig = 3)
+    } else {
+      p <- "-"
+    }
+
+    # if levels No, Yes only present Yes
+    levs <- out %>% pull(level)
+    nlevs <- length(levs)
+    if (nlevs == 2 & all(levs %in% c("No", "Yes"))) {
+      out <- out %>%
+        filter(level == "Yes") %>%
+        mutate(
+          var = x,
+          p = p,
+          pmis = pmis,
+          level = NA
+        )
+    } else {
+      out <- out %>%
+        mutate(
+          var = NA,
+          p = NA,
+          pmis = NA
+        )
+      out <- out %>% add_row(
+        var = x,
+        p = p,
+        pmis = pmis,
+        .before = 1
+      )
+    }
+  } 
+}
+
+catdig <- 0
+tab <- escdata %>%
+  count(Bili_mgdL_cat, .drop = F) %>%
+  mutate(
+    Overall = sum(n),
+    n = paste0(n, " (", fn(n / Overall * 100, catdig), ")")
+  ) %>%
+  pivot_wider(names_from = Bili_mgdL_cat, values_from = n) %>%
+  mutate(
+    var = "N (%)",
+    level = NA,
+    p = NA,
+    pmis = NA
+  ) %>%
+  select(var, level, pmis, levels(escdata %>% pull(Bili_mgdL_cat)), p)
+
+tabtmp <- lapply(c("death_inhosp", "DCWHF", "ITDIURH", "ITNITH", "vaso_dobuta_dopa_milri_enox_lev", 
+                   "vaso_norepi_epi_vasopress", "ITSTMEC"),
+  FUN = outtabfunc, data = escdata,
+  stratavar = "Bili_mgdL_cat", catdig = catdig
+)
+tabtmp <- bind_rows(tabtmp)
+
+deathcause <- outtabfunc(x = "death", data = escdata %>% filter(death_inhosp == "Yes") %>% mutate(death = droplevels(death)), 
+                         stratavar = "Bili_mgdL_cat", catdig = catdig)
+
+tab <- bind_rows(tab, tabtmp, deathcause)
+
+tab <- left_join(tab,
+  metaesc,
+  by = c("var" = "variable")
+) %>%
+  mutate(
+    Variable = coalesce(label, var),
+    Variable = if_else(!is.na(level) & !is.na(Variable),
+      paste0(Variable, " ", level),
+      coalesce(Variable, paste0("  ", level))
+    )
+  ) %>%
+  select(Variable, pmis:p)
+
+levs <- levels(escdata %>% pull(Bili_mgdL_cat))
+cn <- c("Variable", "Missing (%)", levs, "p-value")
+
+if (output) {
+  make_one_xlsxsheet(tab, colnames = cn)
+}
+
+# footnotes
+tab <- tab %>%
+  mutate(
+    # so no probs
+    Variable = sanitize_text(Variable),
+    Variable = str_replace_all(Variable, fixed("²"), "\\textsuperscript{2}"),
+    Variable = str_replace_all(Variable, fixed("$>$="), "$\\geq$"),
+    Variable = str_replace_all(Variable, fixed("$<$="), "$\\leq$")
+  )
+
+indent_rows <- tab %>%
+  mutate(
+    indent_rows = str_detect(Variable, "  "),
+    rows = row_number()
+  ) %>%
+  filter(indent_rows) %>%
+  pull(rows)
+
+cn <- sanitize_text(cn)
+
+default_kable(tab,
+  escape = FALSE,
+  col.names = cn
+) %>%
+  add_indent(indent_rows) %>%
+  footnote(
+    footnote_order = c("general", "symbol", "alphabet"),
+    general_title = "",
+    general = c(
+      "Presented with n (%) and tested with chi-square test."
+    ),
+    threeparttable = T
+  )
+```
+

@@ -129,7 +129,10 @@ metaesc <- bind_rows(
       "OPABD_congest",
       "OPABD_pe",
       "vaso_any",
-      "OPCPRO_OPBP1"
+      "OPCPRO_OPBP1", 
+      "death", 
+      "vaso_dobuta_dopa_milri_enox_lev", 
+      "vaso_norepi_epi_vasopress"
     ),
     label = c(
       "LVEF",
@@ -137,8 +140,14 @@ metaesc <- bind_rows(
       "Chest X-ray: Pulmonary congestion or oedema",
       "Chest X-ray: Pleural effusion",
       "Vasoactive support",
-      "Clinical Profile/Systolic Blood pressure (mmHg)"
+      "Clinical Profile/Systolic Blood pressure (mmHg)", 
+      "Cause of in-hospital death",
+      "Dobutamine, dopamine, milrinone, enoximone or levosimendan", 
+      "Norepinephrine, epinephrine, vasopressin or other vasopressors"
     ),
-    unit = c("%", "pg/mL", rep(NA, 4))
+    unit = c("%", "pg/mL", rep(NA, 7))
   )
 )
+
+metaesc <- metaesc %>%
+  mutate(label = if_else(variable == "OPARYT", "ECG Atrial fibrillation/flutter", label))

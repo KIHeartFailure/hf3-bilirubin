@@ -89,6 +89,8 @@ enrolling centers in `r escdata %>% distinct(COUNTRY) %>% count() %>% pull(n)` c
 
 EF is defined at admission, and if missing, during hospitalization and thirdly last known EF. 
 
+For variables collected at both at admission (before/at/closest after) and at discharge the admission values are presented. 
+
 # Statistical analysis 
 
 ## General
@@ -208,6 +210,8 @@ The median (q1-q3) age is `r med` and `r percfem`% females. The median (min, q1-
 \clearpage
 
 {{< include src/inhospbili.qmd >}}
+
+{{< include src/outtab.qmd >}}
 
 \clearpage
 
